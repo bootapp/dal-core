@@ -1,0 +1,33 @@
+databaseChangeLog:
+  - changeSet:
+      id: org-role-table-create
+      author: wangh09
+      changes:
+        - createTable:
+            tableName: roles_org
+            columns:
+              - column:
+                  name: id
+                  type: BigInt
+                  constraints:
+                    - primaryKey: true
+                    - nullable: false
+                    - updatable: false
+              - column:
+                  name: name
+                  type: VARCHAR(50)
+              - column:
+                  name: remark
+                  type: VARCHAR(255)
+              - column:
+                  name: authorities
+                  type: TEXT
+              - column:
+                  name: status
+                  type: Int
+              - column:
+                  name: create_at
+                  type: BigInt
+              - column:
+                  name: update_at
+                  type: BigInt

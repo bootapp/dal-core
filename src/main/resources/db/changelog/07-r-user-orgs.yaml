@@ -1,0 +1,30 @@
+databaseChangeLog:
+  - changeSet:
+      id: r-user-org-create
+      author: wangh09
+      changes:
+        - createTable:
+            tableName: user_orgs
+            columns:
+              - column:
+                  name: id
+                  type: BigInt
+                  constraints:
+                    - primaryKey: true
+                    - nullable: false
+                    - updatable: false
+              - column:
+                  name: user_id
+                  type: BigInt
+              - column:
+                  name: org_id
+                  type: BigInt
+              - column:
+                  name: status
+                  type: Int
+              - column:
+                  name: create_at
+                  type: BigInt
+              - column:
+                  name: update_at
+                  type: BigInt

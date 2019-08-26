@@ -1,0 +1,16 @@
+databaseChangeLog:
+  - changeSet:
+      id: id-gen-table-create
+      author: wangh09
+      changes:
+        - createTable:
+            tableName: id_generators
+            columns:
+              - column:
+                  name: id
+                  type: BigInt
+                  constraints:
+                    - primaryKey: true
+              - column:
+                  name: update_at
+                  type: BigInt

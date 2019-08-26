@@ -1,0 +1,65 @@
+plugins {
+    id 'java'
+    id 'idea'
+    id 'org.springframework.boot' version '2.1.7.RELEASE'
+    id "org.liquibase.gradle" version "2.0.1"
+    id "com.google.protobuf" version "0.8.10"
+}
+
+apply plugin: 'io.spring.dependency-management'
+
+idea {
+    module{
+        sourceDirs += file('out/production/classes/generated')
+    }
+}
+
+group 'com.bootapp'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    maven { url 'http://maven.aliyun.com/nexus/content/groups/public/' }
+    maven { url 'http://maven.aliyun.com/nexus/content/repositories/jcenter' }
+    mavenCentral()
+}
+sourceSets {
+    main {
+        proto { srcDir '../protos/dal/core' }
+    }
+}
+
+def queryDslVersion = '4.2.1'
+dependencies {
+    implementation 'org.mindrot:jbcrypt:0.4'
+    //jpa
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    //querydsl
+    compile "com.querydsl:querydsl-core:${queryDslVersion}"
+    compile "com.querydsl:querydsl-jpa:${queryDslVersion}"
+    annotationProcessor( //generating QFiles
+            "com.querydsl:querydsl-apt:${queryDslVersion}:jpa",
+            'javax.annotation:javax.annotation-api',
+            "org.hibernate.javax.persistence:hibernate-jpa-2.1-api:1.0.2.Final",
+    )
+    //grpc
+    implementation 'io.github.lognet:grpc-spring-boot-starter:3.4.1'
+    //jdbc
+    implementation 'mysql:mysql-connector-java'
+    implementation 'io.shardingsphere:sharding-jdbc-spring-boot-starter:3.1.0'
+    implementation 'org.liquibase:liquibase-core'
+    
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+protobuf {
+    protoc {artifact = 'com.google.protobuf:protoc:3.5.1-1'}
+    plugins {
+        grpc { artifact = "io.grpc:protoc-gen-grpc-java:1.19.0" }
+    }
+    generateProtoTasks {
+        all()*.plugins { grpc {outputSubDir = "java"} }
+    }
+    generatedFilesBaseDir = "$projectDir/src/"
+}
