@@ -34,3 +34,32 @@ databaseChangeLog:
               - column:
                   name: update_at
                   type: BigInt
+        - loadData:
+            file: "db/data/user_roles.csv"
+            separator: '@'
+            tableName: roles_user
+            columns:
+              - column:
+                  name: id
+                  type: numeric
+              - column:
+                  name: org_id
+                  type: numeric
+              - column:
+                  name: name
+                  type: string
+              - column:
+                  name: remark
+                  type: string
+              - column:
+                  name: authorities
+                  type: string
+              - column:
+                  name: status
+                  type: numeric
+              - column:
+                  name: create_at
+                  type: numeric
+              - column:
+                  name: update_at
+                  type: numeric

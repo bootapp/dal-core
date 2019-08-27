@@ -14,18 +14,6 @@ databaseChangeLog:
                     - nullable: false
                     - updatable: false
               - column:
-                  name: create_at
-                  type: BigInt
-              - column:
-                  name: update_at
-                  type: BigInt
-              - column:
-                  name: status
-                  type: Int
-              - column:
-                  name: user_role_id
-                  type: BigInt
-              - column:
                   name: phone
                   type: VARCHAR(20)
                   constraints:
@@ -43,3 +31,41 @@ databaseChangeLog:
               - column:
                   name: password_hash
                   type: VARCHAR(60)
+              - column:
+                  name: status
+                  type: Int
+              - column:
+                  name: create_at
+                  type: BigInt
+              - column:
+                  name: update_at
+                  type: BigInt
+        - loadData:
+            file: "db/data/users.csv"
+            separator: '#'
+            tableName: users
+            columns:
+              - column:
+                  name: id
+                  type: numeric
+              - column:
+                  name: username
+                  type: string
+              - column:
+                  name: phone
+                  type: string
+              - column:
+                  name: email
+                  type: string
+              - column:
+                  name: password_hash
+                  type: string
+              - column:
+                  name: status
+                  type: numeric
+              - column:
+                  name: create_at
+                  type: numeric
+              - column:
+                  name: update_at
+                  type: numeric

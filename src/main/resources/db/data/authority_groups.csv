@@ -1,0 +1,4 @@
+auth_key@auth_value@module_id@name@status@create_at@update_at
+G_NULL@0@1@无@1@0@0
+G_SYS@1@1@系统管理@1@0@0
+G_ORG@2@1@组织管理@1@0@0

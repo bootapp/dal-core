@@ -20,6 +20,9 @@ databaseChangeLog:
                   name: org_id
                   type: BigInt
               - column:
+                  name: user_role_id
+                  type: BigInt
+              - column:
                   name: status
                   type: Int
               - column:
@@ -28,3 +31,29 @@ databaseChangeLog:
               - column:
                   name: update_at
                   type: BigInt
+        - loadData:
+            file: "db/data/user_orgs.csv"
+            separator: '@'
+            tableName: user_orgs
+            columns:
+              - column:
+                  name: id
+                  type: numeric
+              - column:
+                  name: user_id
+                  type: numeric
+              - column:
+                  name: org_id
+                  type: numeric
+              - column:
+                  name: user_role_id
+                  type: numeric
+              - column:
+                  name: status
+                  type: numeric
+              - column:
+                  name: create_at
+                  type: numeric
+              - column:
+                  name: update_at
+                  type: numeric
