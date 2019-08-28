@@ -44,30 +44,24 @@ public class UserService extends DalUserServiceGrpc.DalUserServiceImplBase {
     }
     @Override
     @Transactional
-    public void writeUser(CoreCommon.User request, StreamObserver<CoreCommon.UserWithOrg> responseObserver) {
+    public void createUser(CoreCommon.User request, StreamObserver<CoreCommon.UserWithOrg> responseObserver) {
         CoreCommon.UserWithOrg.Builder resp = CoreCommon.UserWithOrg.newBuilder();
         try {
             User user = new User();
             user.fromProto(request);
-            //------------ handle userId
-            if (request.getId() != 0L) user.setId(request.getId());
-            else user.setId(idGen.nextId());
-            if (user.getId() == 0L) {
-                responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("the new user's id is zero"));
-                return;
-            }
-
-            if (!request.getPassword().equals("")) user.setPasswordHash(BCrypt.hashpw(request.getPassword(), BCrypt.gensalt()));
-
+            //------------ check username
             if (user.getUsername() != null && user.getUsername().matches(usernameRE)) {
                 responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("wrong username"));
                 return;
             }
-            userRepository.save(user);
-            // add to default user group
+            //------------ set password
+            if (request.getPassword() != null && !request.getPassword().equals(""))
+                user.setPasswordHash(BCrypt.hashpw(request.getPassword(), BCrypt.gensalt()));
+            user.setId(idGen.nextId());
             UserOrgs userOrgs = new UserOrgs(idGen.nextId(), user.getId(), 1, 1);
             userOrgsRepository.save(userOrgs);
-            logger.info("new user saved to db with id: {}", user.getId());
+            logger.info("new user saving to db with id: {}", user.getId());
+            userRepository.save(user);
             resp.setUser(user.toProto());
             responseObserver.onNext(resp.build());
             responseObserver.onCompleted();
@@ -83,20 +77,64 @@ public class UserService extends DalUserServiceGrpc.DalUserServiceImplBase {
     }
 
     @Override
-    public void checkPhoneExists(DalUser.UserPhoneReq request, StreamObserver<CoreCommon.Empty> responseObserver) {
+    public void updateUser(DalUser.UpdateUserReq request, StreamObserver<CoreCommon.Empty> responseObserver) {
         try {
-            if (userRepository.findOneByPhone(request.getPhone()).isPresent()) {
-                responseObserver.onNext(CoreCommon.Empty.newBuilder().build());
-                responseObserver.onCompleted();
-            } else {
-                responseObserver.onError(GrpcStatusException.GrpcNotFoundException());
+            if (request.getType() != DalUser.UpdateUserType.UPDATE_USER_TYPE_ID && request.getUser().getId() != 0) {
+                responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("id can be non-zero only for updateById"));
+                return;
             }
-        } catch (RuntimeException e) {
-            logger.error(e.toString());
+            Optional<User> user;
+            switch (request.getType()) {
+                case UPDATE_USER_TYPE_ID:
+                    if (request.getUser().getId() == 0) {
+                        responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("user id is null"));
+                        return;
+                    }
+                    user = userRepository.findById(request.getUser().getId());
+                    break;
+                case UPDATE_USER_TYPE_USERNAME:
+                    if (request.getUser().getUsername().equals("")) {
+                        responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("username is null"));
+                        return;
+                    }
+                    user = userRepository.findOneByUsername(request.getUser().getUsername());
+                    break;
+                case UPDATE_USER_TYPE_PHONE:
+                    if (request.getUser().getPhone().equals("")) {
+                        responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("phone is null"));
+                        return;
+                    }
+                    user = userRepository.findOneByPhone(request.getUser().getPhone());
+                    break;
+                case UPDATE_USER_TYPE_EMAIL:
+                    if (request.getUser().getEmail().equals("")) {
+                        responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("email is null"));
+                        return;
+                    }
+                    user = userRepository.findOneByEmail(request.getUser().getEmail());
+                    break;
+                default:
+                    responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("invalid type"));
+                    return;
+            }
+            if (!user.isPresent()) {
+                responseObserver.onError(GrpcStatusException.GrpcNotFoundException());
+                return;
+            }
+            User dbUser = user.get();
+            dbUser.fromProto(request.getUser());
+            //------------ set password
+            if (request.getUser().getPassword() != null && !request.getUser().getPassword().equals(""))
+                dbUser.setPasswordHash(BCrypt.hashpw(request.getUser().getPassword(), BCrypt.gensalt()));
+            userRepository.save(dbUser);
+            responseObserver.onNext(CoreCommon.Empty.newBuilder().build());
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error(e.getMessage());
             responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
         }
     }
-
     @Override
     public void readUser(CoreCommon.User request, StreamObserver<CoreCommon.UserWithOrg> responseObserver) {
         CoreCommon.UserWithOrg.Builder resp = CoreCommon.UserWithOrg.newBuilder();
@@ -190,6 +228,34 @@ public class UserService extends DalUserServiceGrpc.DalUserServiceImplBase {
         } catch (Exception e) {
             logger.error(e.toString());
             responseObserver.onError(e);
+        }
+    }
+    @Override
+    public void verifyUniqueUser(CoreCommon.User request, StreamObserver<CoreCommon.Empty> responseObserver) {
+        try {
+            if (request.getUsername() != null && !request.getUsername().equals("")) {
+                if (userRepository.findOneByUsername(request.getUsername()).isPresent()) {
+                    responseObserver.onError(GrpcStatusException.GrpcAlreadyExistsException("username exists"));
+                    return;
+                }
+            }
+            if (request.getPhone() != null && !request.getPhone().equals("")) {
+                if (userRepository.findOneByPhone(request.getPhone()).isPresent()) {
+                    responseObserver.onError(GrpcStatusException.GrpcAlreadyExistsException("phone exists"));
+                    return;
+                }
+            }
+            if (request.getEmail() != null && !request.getEmail().equals("")) {
+                if (userRepository.findOneByEmail(request.getEmail()).isPresent()) {
+                    responseObserver.onError(GrpcStatusException.GrpcAlreadyExistsException("email exists"));
+                    return;
+                }
+            }
+            responseObserver.onNext(CoreCommon.Empty.newBuilder().build());
+            responseObserver.onCompleted();
+        } catch (RuntimeException e) {
+            logger.error(e.toString());
+            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
         }
     }
 }

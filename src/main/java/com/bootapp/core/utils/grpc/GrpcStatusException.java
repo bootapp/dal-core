@@ -18,6 +18,9 @@ public class GrpcStatusException {
     public static RuntimeException GrpcAlreadyExistsException(Exception e) {
         return Status.ALREADY_EXISTS.withDescription(e.getMessage()).withCause(e.getCause()).asRuntimeException();
     }
+    public static RuntimeException GrpcAlreadyExistsException(String s) {
+        return Status.ALREADY_EXISTS.withDescription(s).asRuntimeException();
+    }
     public static RuntimeException GrpcNotFoundException() {
         return Status.NOT_FOUND.withDescription("not found").asRuntimeException();
     }
