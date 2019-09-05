@@ -218,9 +218,11 @@ public class UserService extends DalUserServiceGrpc.DalUserServiceImplBase {
             if(user.getUsername()!= null && !user.getUsername().equals("")) queryExpressions = userDsl.username.like(user.getUsername() + "%").or(queryExpressions);
             if(user.getEmail()!= null && !user.getEmail().equals("")) queryExpressions = userDsl.email.like(user.getEmail() + "%").or(queryExpressions);
             if(user.getPhone()!= null && !user.getPhone().equals("")) queryExpressions = userDsl.phone.like(user.getPhone() + "%").or(queryExpressions);
-            int limit = request.getLimit();
-            if (limit <= 0) limit = 20;
-            Page<com.bootapp.core.domain.User> users = userRepository.findAll(userDsl.id.gt(request.getOffsetId()).and(queryExpressions), PageRequest.of(0, limit));
+            long limit = request.getPagination().getSize();
+            if (limit <= 0L) limit = 20L;
+            Page<com.bootapp.core.domain.User> users = userRepository.findAll(
+                    userDsl.id.gt(request.getPagination().getIdx()).and(queryExpressions),
+                    PageRequest.of(0, (int)limit));
 
             users.forEach(it -> resp.addUsers(it.toProto()));
             responseObserver.onNext(resp.buildPartial());
