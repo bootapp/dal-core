@@ -224,7 +224,7 @@ public class UserService extends DalUserServiceGrpc.DalUserServiceImplBase {
                     userDsl.id.gt(request.getPagination().getIdx()).and(queryExpressions),
                     PageRequest.of(0, (int)limit));
 
-            users.forEach(it -> resp.addUsers(it.toProto()));
+            users.forEach(it -> resp.addData(it.toProto()));
             responseObserver.onNext(resp.buildPartial());
             responseObserver.onCompleted();
         } catch (Exception e) {
