@@ -10,6 +10,8 @@ public class Organization extends AbstractEntity {
     @Column(nullable = false, updatable = false)
     long id;
 
+    String code;
+
     @Column(name = "org_role_id", nullable = false, updatable = false)
     long orgRoleId;
 

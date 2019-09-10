@@ -4,10 +4,10 @@ import io.grpc.Status;
 
 public class GrpcStatusException {
     public static RuntimeException GrpcInternalException(Exception e) {
-        return Status.INTERNAL.withDescription(e.getMessage()).withCause(e.getCause()).asRuntimeException();
+        return Status.INTERNAL.withDescription("INTERNAL:"+e.getMessage()).withCause(e.getCause()).asRuntimeException();
     }
     public static RuntimeException GrpcInternalException(String s) {
-        return Status.INTERNAL.withDescription(s).asRuntimeException();
+        return Status.INTERNAL.withDescription("INTERNAL:"+s).asRuntimeException();
     }
     public static RuntimeException GrpcInvalidArgException(Exception e) {
         return Status.INVALID_ARGUMENT.withDescription(e.getMessage()).withCause(e.getCause()).asRuntimeException();
@@ -22,6 +22,6 @@ public class GrpcStatusException {
         return Status.ALREADY_EXISTS.withDescription(s).asRuntimeException();
     }
     public static RuntimeException GrpcNotFoundException() {
-        return Status.NOT_FOUND.withDescription("not found").asRuntimeException();
+        return Status.NOT_FOUND.withDescription("NON_EXISTS").asRuntimeException();
     }
 }

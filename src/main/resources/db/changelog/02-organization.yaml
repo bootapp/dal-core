@@ -26,6 +26,9 @@ databaseChangeLog:
                   name: org_role_id
                   type: BigInt
               - column:
+                  name: code
+                  type: VARCHAR(20)
+              - column:
                   name: name
                   type: VARCHAR(20)
         - loadData:
@@ -38,6 +41,9 @@ databaseChangeLog:
                   type: numeric
               - column:
                   name: name
+                  type: string
+              - column:
+                  name: code
                   type: string
               - column:
                   name: org_role_id

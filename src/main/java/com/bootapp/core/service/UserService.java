@@ -51,7 +51,7 @@ public class UserService extends DalUserServiceGrpc.DalUserServiceImplBase {
             user.fromProto(request);
             //------------ check username
             if (user.getUsername() != null && user.getUsername().matches(usernameRE)) {
-                responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("wrong username"));
+                responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("INVALID_ARG:username"));
                 return;
             }
             //------------ set password
@@ -66,9 +66,9 @@ public class UserService extends DalUserServiceGrpc.DalUserServiceImplBase {
             responseObserver.onNext(resp.build());
             responseObserver.onCompleted();
         } catch (DataIntegrityViolationException e) {
-            responseObserver.onError(GrpcStatusException.GrpcAlreadyExistsException(new RuntimeException(e.getMostSpecificCause().getMessage())));
+                responseObserver.onError(GrpcStatusException.GrpcAlreadyExistsException(new RuntimeException("ALREADY_EXISTS:"+e.getMostSpecificCause().getMessage())));
         } catch (ConstraintViolationException e) {
-            responseObserver.onError(GrpcStatusException.GrpcInvalidArgException(new RuntimeException(e.getConstraintName() + " wrong")));
+            responseObserver.onError(GrpcStatusException.GrpcInvalidArgException(new RuntimeException("INVALID_ARGS:"+e.getConstraintName())));
         } catch (RuntimeException e) {
             e.printStackTrace();
             logger.error(e.getMessage());
@@ -80,41 +80,41 @@ public class UserService extends DalUserServiceGrpc.DalUserServiceImplBase {
     public void updateUser(DalUser.UpdateUserReq request, StreamObserver<CoreCommon.Empty> responseObserver) {
         try {
             if (request.getType() != DalUser.UpdateUserType.UPDATE_USER_TYPE_ID && request.getUser().getId() != 0) {
-                responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("id can be non-zero only for updateById"));
+                responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("INVALID_ARGS:id can be non-zero only for updateById"));
                 return;
             }
             Optional<User> user;
             switch (request.getType()) {
                 case UPDATE_USER_TYPE_ID:
                     if (request.getUser().getId() == 0) {
-                        responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("user id is null"));
+                        responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("INVALID_ARG:userId"));
                         return;
                     }
                     user = userRepository.findById(request.getUser().getId());
                     break;
                 case UPDATE_USER_TYPE_USERNAME:
                     if (request.getUser().getUsername().equals("")) {
-                        responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("username is null"));
+                        responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("INVALID_ARG:username"));
                         return;
                     }
                     user = userRepository.findOneByUsername(request.getUser().getUsername());
                     break;
                 case UPDATE_USER_TYPE_PHONE:
                     if (request.getUser().getPhone().equals("")) {
-                        responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("phone is null"));
+                        responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("INVALID_ARG:phone"));
                         return;
                     }
                     user = userRepository.findOneByPhone(request.getUser().getPhone());
                     break;
                 case UPDATE_USER_TYPE_EMAIL:
                     if (request.getUser().getEmail().equals("")) {
-                        responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("email is null"));
+                        responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("INVALID_ARG:email"));
                         return;
                     }
                     user = userRepository.findOneByEmail(request.getUser().getEmail());
                     break;
                 default:
-                    responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("invalid type"));
+                    responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("INVALID_ARG:type"));
                     return;
             }
             if (!user.isPresent()) {
@@ -160,7 +160,7 @@ public class UserService extends DalUserServiceGrpc.DalUserServiceImplBase {
                 return;
             }
             if (request.getId() == 0 && request.getPassword() != null && !BCrypt.checkpw(request.getPassword(), dbUser.getPasswordHash())) {
-                responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("invalid password"));
+                responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("INVALID_PASSWORD"));
                 return;
             }
             resp.setUser(dbUser.toProto());
@@ -168,7 +168,7 @@ public class UserService extends DalUserServiceGrpc.DalUserServiceImplBase {
             if (request.getOrgId() != 0) {
                 Optional<UserOrgs> userOrgs = userOrgsRepository.findOneByUserIdAndOrgId(dbUser.getId(), request.getOrgId());
                 if(!userOrgs.isPresent()) {
-                    responseObserver.onError(GrpcStatusException.GrpcInternalException("user org error"));
+                    responseObserver.onError(GrpcStatusException.GrpcInternalException("NON_EXISTS"));
                     return;
                 }
                 userOrgsList = Collections.singletonList(userOrgs.get());
@@ -178,7 +178,7 @@ public class UserService extends DalUserServiceGrpc.DalUserServiceImplBase {
             // return error if user has no organization,
             // remove the default org if the user has more than one organization.
             if(userOrgsList.size() == 0) {
-                responseObserver.onError(GrpcStatusException.GrpcInternalException("no org for the user"));
+                responseObserver.onError(GrpcStatusException.GrpcInternalException("NON_EXISTS"));
                 return;
             } else if (userOrgsList.size() > 1) {
                 for(int i = 0; i < userOrgsList.size(); i++) {
@@ -237,19 +237,19 @@ public class UserService extends DalUserServiceGrpc.DalUserServiceImplBase {
         try {
             if (request.getUsername() != null && !request.getUsername().equals("")) {
                 if (userRepository.findOneByUsername(request.getUsername()).isPresent()) {
-                    responseObserver.onError(GrpcStatusException.GrpcAlreadyExistsException("username exists"));
+                    responseObserver.onError(GrpcStatusException.GrpcAlreadyExistsException("ALREADY_EXISTS:username"));
                     return;
                 }
             }
             if (request.getPhone() != null && !request.getPhone().equals("")) {
                 if (userRepository.findOneByPhone(request.getPhone()).isPresent()) {
-                    responseObserver.onError(GrpcStatusException.GrpcAlreadyExistsException("phone exists"));
+                    responseObserver.onError(GrpcStatusException.GrpcAlreadyExistsException("ALREADY_EXISTS:phone"));
                     return;
                 }
             }
             if (request.getEmail() != null && !request.getEmail().equals("")) {
                 if (userRepository.findOneByEmail(request.getEmail()).isPresent()) {
-                    responseObserver.onError(GrpcStatusException.GrpcAlreadyExistsException("email exists"));
+                    responseObserver.onError(GrpcStatusException.GrpcAlreadyExistsException("ALREADY_EXISTS:email"));
                     return;
                 }
             }
