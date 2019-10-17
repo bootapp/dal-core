@@ -24,7 +24,7 @@ databaseChangeLog:
                   type: VARCHAR(255)
               - column:
                   name: authorities
-                  type: TEXT
+                  type: clob
               - column:
                   name: status
                   type: Int

@@ -8,5 +8,6 @@ import java.util.Optional;
 
 public interface UserOrgsRepository extends JpaRepository<UserOrgs, Long> {
     List<UserOrgs> findAllByUserId(long userId);
+    List<UserOrgs> findAllByUserIdIn(List<Long> userId);
     Optional<UserOrgs> findOneByUserIdAndOrgId(long userId, long orgId);
 }

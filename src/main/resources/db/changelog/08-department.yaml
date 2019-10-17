@@ -1,0 +1,39 @@
+databaseChangeLog:
+  - changeSet:
+      id: department-table-create
+      author: wangh09
+      changes:
+        - createTable:
+            tableName: departments
+            columns:
+              - column:
+                  name: id
+                  type: BigInt
+                  constraints:
+                    - primaryKey: true
+                    - nullable: false
+                    - updatable: false
+              - column:
+                  name: create_at
+                  type: BigInt
+              - column:
+                  name: update_at
+                  type: BigInt
+              - column:
+                  name: status
+                  type: Int
+              - column:
+                  name: pid
+                  type: BigInt
+              - column:
+                  name: org_id
+                  type: BigInt
+              - column:
+                  name: description
+                  type: VARCHAR(255)
+              - column:
+                  name: name
+                  type: VARCHAR(20)
+              - column:
+                  name: remark
+                  type: VARCHAR(255)

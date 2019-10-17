@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.6.xsd
+                        http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+
+    <changeSet id="messages-table-create" author="wangh09">
+        <createTable tableName="messages">
+            <column name="id" type="bigint">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="type" type="integer">
+                <constraints nullable="true" />
+            </column>
+            <column name="receive_type" type="integer">
+                <constraints nullable="true" />
+            </column>
+            <column name="org_id" type="bigint">
+                <constraints nullable="true" />
+            </column>
+            <column name="user_id" type="bigint">
+                <constraints nullable="true" />
+            </column>
+            <column name="send_to" type="bigint">
+                <constraints nullable="true" />
+            </column>
+            <column name="title" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="content" type="clob">
+                <constraints nullable="true" />
+            </column>
+            <column name="files" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="status" type="integer">
+                <constraints nullable="true" />
+            </column>
+            <column name="create_at" type="bigint">
+                <constraints nullable="true" />
+            </column>
+            <column name="update_at" type="bigint">
+                <constraints nullable="true" />
+            </column>
+            <!-- jhipster-needle-liquibase-add-column - JHipster will add columns here, do not remove-->
+        </createTable>
+    </changeSet>
+</databaseChangeLog>

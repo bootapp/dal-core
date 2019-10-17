@@ -6,6 +6,7 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 
 import com.bootapp.core.grpc.CoreCommon;
+import com.google.protobuf.StringValue;
 
 @Entity
 @Table(name = "users")
@@ -26,22 +27,25 @@ public class User extends AbstractEntity {
     @Column(name = "password_hash", length = 60)
     String passwordHash;
 
+    @Column(name = "name", length = 32)
+    String name;
+
     public void fromProto(CoreCommon.User item) {
         if (item.getId() != 0L) id = item.getId();
         if (item.getStatusValue() != 0) status = item.getStatusValue();
-        if (item.getPhone() != null && !item.getPhone().equals("")) phone = item.getPhone();
-        if (item.getEmail() != null && !item.getEmail().equals("")) email = item.getEmail();
-        if (item.getUsername() != null && !item.getUsername().equals("")) username = item.getUsername();
-        if (item.getCreateAt() != 0L) createAt = item.getCreateAt();
-        if (item.getUpdateAt() != 0L) updateAt = item.getUpdateAt();
+        if (item.hasPhone()) phone = item.getPhone().getValue();
+        if (item.hasEmail()) email = item.getEmail().getValue();
+        if (item.hasUsername()) username = item.getUsername().getValue();
+        if (item.hasName()) name = item.getName().getValue();
     }
     public CoreCommon.User toProto() {
         CoreCommon.User.Builder builder = CoreCommon.User.newBuilder();
         if (this.getId() != 0L) builder.setId(this.getId());
         if (this.status != 0) builder.setStatusValue(this.status);
-        if (this.phone != null && !this.phone.equals("")) builder.setPhone(this.phone);
-        if (this.email != null && !this.email.equals("")) builder.setEmail(this.email);
-        if (this.username != null && !this.username.equals("")) builder.setUsername(this.username);
+        if (this.phone != null && !this.phone.equals("")) builder.setPhone(StringValue.of(this.phone));
+        if (this.email != null && !this.email.equals("")) builder.setEmail(StringValue.of(this.email));
+        if (this.username != null && !this.username.equals("")) builder.setUsername(StringValue.of(this.username));
+        if (this.name != null && !this.name.equals("")) builder.setName(StringValue.of(this.name));
         builder.setCreateAt(this.createAt);
         builder.setUpdateAt(this.updateAt);
         return builder.buildPartial();
@@ -84,5 +88,13 @@ public class User extends AbstractEntity {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 }

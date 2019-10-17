@@ -47,7 +47,8 @@ dependencies {
     implementation 'io.github.lognet:grpc-spring-boot-starter:3.4.1'
     //jdbc
     implementation 'mysql:mysql-connector-java'
-    implementation 'io.shardingsphere:sharding-jdbc-spring-boot-starter:3.1.0'
+
+    //compile 'org.apache.shardingsphere:sharding-jdbc-spring-boot-starter:4.0.0-RC2'
     implementation 'org.liquibase:liquibase-core'
     
     testCompile group: 'junit', name: 'junit', version: '4.12'

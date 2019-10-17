@@ -6,7 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 
-@EnableAutoConfiguration(exclude = DataSourceAutoConfiguration.class)
+@EnableAutoConfiguration
 @SpringBootApplication
 public class DalCoreApplication {
     public static void main(String[] args) {

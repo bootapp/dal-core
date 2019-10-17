@@ -2,7 +2,6 @@ package com.bootapp.core.service;
 
 import com.bootapp.core.domain.Authority;
 import com.bootapp.core.domain.AuthorityGroups;
-import com.bootapp.core.grpc.CoreCommon;
 import com.bootapp.core.grpc.DalAuth;
 import com.bootapp.core.grpc.DalAuthServiceGrpc;
 import com.bootapp.core.repository.AuthorityGroupRepository;

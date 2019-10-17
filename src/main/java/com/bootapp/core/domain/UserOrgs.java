@@ -19,7 +19,6 @@ public class UserOrgs extends AbstractEntity {
         this.status = 1;
     }
     @Id
-    @Column(nullable = false)
     long id;
     @Column(name = "user_id", nullable = false)
     private long userId;

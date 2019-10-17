@@ -16,7 +16,7 @@ public class RoleOrg extends AbstractEntity {
     String remark;
 
     @Lob
-    @Column(columnDefinition = "text")
+    @Column(name = "authorities")
     String authorities;
 
     public long getId() {

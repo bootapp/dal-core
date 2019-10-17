@@ -1,5 +1,7 @@
 package com.bootapp.core.domain;
 
+import com.bootapp.core.grpc.CoreCommon;
+
 import javax.persistence.*;
 
 @Entity
@@ -17,6 +19,18 @@ public class Organization extends AbstractEntity {
 
     @Column(length = 20)
     String name;
+
+    public CoreCommon.Organization toProto() {
+        CoreCommon.Organization.Builder builder = CoreCommon.Organization.newBuilder();
+        builder.setId(id);
+        builder.setCode(code);
+        builder.setOrgRoleId(orgRoleId);
+        builder.setName(name);
+        builder.setStatusValue(status);
+        builder.setCreateAt(createAt);
+        builder.setUpdateAt(updateAt);
+        return builder.build();
+    }
 
     public long getId() {
         return id;

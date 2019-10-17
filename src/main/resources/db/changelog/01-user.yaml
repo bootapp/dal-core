@@ -32,6 +32,9 @@ databaseChangeLog:
                   name: password_hash
                   type: VARCHAR(60)
               - column:
+                  name: name
+                  type: VARCHAR(32)
+              - column:
                   name: status
                   type: Int
               - column:
@@ -59,6 +62,9 @@ databaseChangeLog:
                   type: string
               - column:
                   name: password_hash
+                  type: string
+              - column:
+                  name: name
                   type: string
               - column:
                   name: status
