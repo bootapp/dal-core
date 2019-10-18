@@ -91,6 +91,7 @@ public class UserService extends DalUserServiceGrpc.DalUserServiceImplBase {
         }
     }
 
+    @Transactional
     @Override
     public void createUsers(DalUser.CreateUsersReq request, StreamObserver<CoreCommon.UsersResp> responseObserver) {
         try {
@@ -101,6 +102,8 @@ public class UserService extends DalUserServiceGrpc.DalUserServiceImplBase {
                 return newUser;
             }).collect(Collectors.toList());
             userRepository.saveAll(users);
+            List<UserOrgs> userOrgs = users.stream().map(x -> new UserOrgs(idGen.nextId(), x.getId(), 1, 1)).collect(Collectors.toList());
+            userOrgsRepository.saveAll(userOrgs);
             responseObserver.onNext(CoreCommon.UsersResp.newBuilder().addAllData(
                     users.stream().map(User::toProto).collect(Collectors.toList())
             ).build());
