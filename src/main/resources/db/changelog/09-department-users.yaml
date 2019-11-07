@@ -1,10 +1,10 @@
 databaseChangeLog:
   - changeSet:
-      id: department-table-create
+      id: dept-users-table-create
       author: wangh09
       changes:
         - createTable:
-            tableName: departments
+            tableName: department_users
             columns:
               - column:
                   name: id
@@ -14,26 +14,26 @@ databaseChangeLog:
                     - nullable: false
                     - updatable: false
               - column:
+                  name: dept_id
+                  type: BigInt
+              - column:
+                  name: user_id
+                  type: BigInt
+              - column:
+                  name: position
+                  type: VARCHAR(20)
+              - column:
+                  name: status
+                  type: Int
+              - column:
+                  name: create_by
+                  type: BigInt
+              - column:
+                  name: last_update_by
+                  type: BigInt
+              - column:
                   name: create_at
                   type: BigInt
               - column:
                   name: update_at
                   type: BigInt
-              - column:
-                  name: status
-                  type: Int
-              - column:
-                  name: pid
-                  type: BigInt
-              - column:
-                  name: org_id
-                  type: BigInt
-              - column:
-                  name: description
-                  type: VARCHAR(255)
-              - column:
-                  name: name
-                  type: VARCHAR(20)
-              - column:
-                  name: remark
-                  type: VARCHAR(255)

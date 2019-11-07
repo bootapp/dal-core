@@ -25,11 +25,17 @@ public class Organization extends AbstractEntity {
         builder.setId(id);
         builder.setCode(code);
         builder.setOrgRoleId(orgRoleId);
-        builder.setName(name);
+        if (name != null) builder.setName(name);
         builder.setStatusValue(status);
         builder.setCreateAt(createAt);
         builder.setUpdateAt(updateAt);
         return builder.build();
+    }
+    public void fromProto(CoreCommon.OrganizationEdit proto) {
+        if (proto.hasCode()) code = proto.getCode().getValue();
+        if (proto.hasOrgRoleId()) orgRoleId = proto.getOrgRoleId().getValue();
+        if (proto.hasName()) name = proto.getName().getValue();
+        if (proto.getStatus() != CoreCommon.EntityStatus.ENTITY_STATUS_NULL) setStatus(proto.getStatusValue());
     }
 
     public long getId() {

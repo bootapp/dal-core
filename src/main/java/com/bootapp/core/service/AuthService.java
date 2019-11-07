@@ -27,7 +27,7 @@ public class AuthService extends DalAuthServiceGrpc.DalAuthServiceImplBase {
     }
 
     @Override
-    public void readAuthorities(DalAuth.AuthEmpty request, StreamObserver<DalAuth.Authorities> responseObserver) {
+    public void readAuthorities(DalAuth.ReadAuthoritiesReq request, StreamObserver<DalAuth.Authorities> responseObserver) {
         DalAuth.Authorities.Builder resp = DalAuth.Authorities.newBuilder();
         try {
             List<Authority> authorities = authorityRepository.findAll();

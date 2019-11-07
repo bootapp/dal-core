@@ -11,35 +11,38 @@ import javax.persistence.Table;
 @Table(name = "departments")
 public class Department extends AbstractEntity {
     @Id
-    private long id;
-
+    long id;
     @Column(name = "pid")
-    private long pid;
-
+    long pid;
     @Column(name = "org_id")
-    private long orgId;
-
+    long orgId;
     @Column(name = "name")
-    private String name;
-
+    String name;
     @Column(name = "description")
-    private String description;
-
+    String description;
     @Column(name = "remark")
-    private String remark;
-
+    String remark;
     public CoreCommon.Department toProto() {
         CoreCommon.Department.Builder builder = CoreCommon.Department.newBuilder();
         builder.setId(id);
         builder.setPid(pid);
         builder.setOrgId(orgId);
-        builder.setName(name);
-        builder.setDescription(description);
-        builder.setRemark(remark);
-        builder.setStatusValue(status);
-        builder.setCreateAt(createAt);
-        builder.setUpdateAt(updateAt);
+        if (name != null) builder.setName(name);
+        if (description != null) builder.setDescription(description);
+        if (remark != null) builder.setRemark(remark);
+        builder.setStatusValue(this.getStatus());
+        builder.setCreateAt(this.getCreateAt());
+        builder.setUpdateAt(this.getUpdateAt());
         return builder.build();
+    }
+
+    public void fromProto(CoreCommon.DepartmentEdit proto) {
+        if (proto.hasName()) name = proto.getName().getValue();
+        if (proto.getPid() != 0L) pid = proto.getPid();
+        if (proto.getOrgId() != 0L) orgId = proto.getOrgId();
+        if (proto.hasDescription()) description = proto.getDescription().getValue();
+        if (proto.hasRemark()) remark = proto.getRemark().getValue();
+        if (proto.getStatus() != CoreCommon.EntityStatus.ENTITY_STATUS_NULL) this.setStatus(proto.getStatusValue());
     }
 
     public long getId() {
@@ -48,14 +51,6 @@ public class Department extends AbstractEntity {
 
     public void setId(long id) {
         this.id = id;
-    }
-
-    public long getPid() {
-        return pid;
-    }
-
-    public void setPid(long pid) {
-        this.pid = pid;
     }
 
     public long getOrgId() {
@@ -89,4 +84,5 @@ public class Department extends AbstractEntity {
     public void setRemark(String remark) {
         this.remark = remark;
     }
+
 }

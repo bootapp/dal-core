@@ -90,7 +90,6 @@ public class UserService extends DalUserServiceGrpc.DalUserServiceImplBase {
             responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
         }
     }
-
     @Transactional
     @Override
     public void createUsers(DalUser.CreateUsersReq request, StreamObserver<CoreCommon.UsersResp> responseObserver) {
@@ -357,13 +356,186 @@ public class UserService extends DalUserServiceGrpc.DalUserServiceImplBase {
     }
 
     @Override
-    public void createMessage(DalUser.UpdateMessageReq request, StreamObserver<CoreCommon.Empty> responseObserver) {
+    public void updateOrgs(DalUser.OrgsReq request, StreamObserver<CoreCommon.Empty> responseObserver) {
         try {
-            Message msg = new Message();
-            msg.setId(idGen.nextId());
-            msg.fromProto(request.getMessage());
-            if (msg.getUserId() == 0L) msg.setUserId(request.getUserId());
-            if (msg.getOrgId() == 0L) msg.setOrgId(request.getOrgId());
+            if (request.getDataCount() <= 0) {
+                responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("INVALID_ARG:data"));
+                return;
+            }
+            Map<Long, CoreCommon.OrganizationEdit> orgMap = new HashMap<>();
+            List<Organization> orgsToSave = new ArrayList<>();
+            request.getDataList().forEach(x -> {
+                if (x.getId() == 0L) {
+                    Organization org = new Organization();
+                    org.setId(idGen.nextId());
+                    org.fromProto(x);
+                    orgsToSave.add(org);
+                } else {
+                    orgMap.put(x.getId(), x);
+                }
+            });
+            if (orgMap.size() > 0) {
+                List<Organization> orgs = organizationRepository.findAllById(orgMap.keySet());
+                orgs.forEach(x -> {
+                    if (!orgMap.containsKey(x.getId())) return;
+                    x.fromProto(orgMap.get(x.getId()));
+                    orgsToSave.add(x);
+                });
+            }
+            organizationRepository.saveAll(orgsToSave);
+            responseObserver.onNext(CoreCommon.Empty.newBuilder().build());
+            responseObserver.onCompleted();
+        } catch (RuntimeException e) {
+            logger.error(e.toString());
+            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+        }
+    }
+
+    @Override
+    public void readOrgs(DalUser.ReadOrgsReq request, StreamObserver<CoreCommon.OrgsResp> responseObserver) {
+        try {
+            QOrganization qOrganization = QOrganization.organization;
+            CoreCommon.OrganizationEdit q = request.getOrg();
+            BooleanExpression query = qOrganization.status.ne(CoreCommon.EntityStatus.ENTITY_STATUS_DELETED_VALUE);
+            if (q.hasName()) query = qOrganization.name.like(q.getName().getValue() + "%").and(query);
+            if (q.getStatus() != CoreCommon.EntityStatus.ENTITY_STATUS_NULL)
+                query = qOrganization.status.eq(q.getStatusValue()).and(query);
+            if (q.hasCode()) query = qOrganization.code.like(q.getCode().getValue() + "%").and(query);
+            if (q.hasOrgRoleId()) qOrganization.orgRoleId.eq(q.getOrgRoleId().getValue()).and(query);
+            QueryResults<Organization> orgs;
+            CoreCommon.Pagination pagination = request.getPagination();
+            long limit = pagination.getSize();
+            if (limit <= 0) limit = 20;
+            switch (pagination.getSort()) {
+                case SORT_TYPE_TIME_DESC:
+                case SORT_TYPE_ID_DESC:
+                    orgs = queryFactory.selectFrom(qOrganization).where(query).orderBy(qOrganization.id.desc())
+                            .offset(pagination.getIdx()).limit(limit).fetchResults();
+                    break;
+                default:
+                    orgs = queryFactory.selectFrom(qOrganization).where(query).orderBy(qOrganization.id.asc())
+                            .offset(pagination.getIdx()).limit(limit).fetchResults();
+                    break;
+            }
+            CoreCommon.OrgsResp.Builder resp = CoreCommon.OrgsResp.newBuilder();
+            resp.addAllData(orgs.getResults().stream().map(Organization::toProto).collect(Collectors.toList()));
+            resp.setPagination(CommonUtils.buildPagination(orgs.getOffset(), orgs.getLimit(), orgs.getTotal()));
+            responseObserver.onNext(resp.build());
+            responseObserver.onCompleted();
+        } catch (RuntimeException e) {
+            logger.error(e.toString());
+            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+        }
+    }
+
+    @Override
+    public void updateDepts(DalUser.DeptsReq request, StreamObserver<CoreCommon.Empty> responseObserver) {
+        try {
+            if (request.getDataCount() <= 0) {
+                responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("INVALID_ARG:data"));
+                return;
+            }
+            Map<Long, CoreCommon.DepartmentEdit> deptMap = new HashMap<>();
+            List<Department> deptsToSave = new ArrayList<>();
+            request.getDataList().forEach(x -> {
+                if (x.getId() == 0L) {
+                    Department department = new Department();
+                    department.setId(idGen.nextId());
+                    department.fromProto(x);
+                    if (department.getOrgId() == 0L) department.setOrgId(request.getOrgId());
+                    if (department.getStatus() == CoreCommon.EntityStatus.ENTITY_STATUS_NULL_VALUE)
+                        department.setStatus(CoreCommon.EntityStatus.ENTITY_STATUS_NORMAL_VALUE);
+                    deptsToSave.add(department);
+                } else {
+                    deptMap.put(x.getId(), x);
+                }
+            });
+            if (deptMap.size() > 0) {
+                List<Department> departments = departmentRepository.findAllById(deptMap.keySet());
+                departments.forEach(x-> {
+                    if (!deptMap.containsKey(x.getId())) return;
+                    x.fromProto(deptMap.get(x.getId()));
+                    deptsToSave.add(x);
+                });
+            }
+            departmentRepository.saveAll(deptsToSave);
+            responseObserver.onNext(CoreCommon.Empty.newBuilder().build());
+            responseObserver.onCompleted();
+
+        } catch (RuntimeException e) {
+            logger.error(e.toString());
+            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+        }
+    }
+
+    @Override
+    public void readDepts(DalUser.ReadDeptsReq request, StreamObserver<CoreCommon.DeptsResp> responseObserver) {
+        try {
+            QDepartment qDepartment = QDepartment.department;
+            BooleanExpression query = qDepartment.status.ne(CoreCommon.EntityStatus.ENTITY_STATUS_DELETED_VALUE);
+            CoreCommon.DepartmentEdit q = request.getDept();
+            if (q.hasName()) query = qDepartment.name.like(q.getName().getValue() + "%").and(query);
+            if (q.getOrgId() != 0L) query = qDepartment.orgId.eq(q.getOrgId()).and(query);
+            if (q.getPid() != 0L) query = qDepartment.pid.eq(q.getPid()).and(query);
+            if (q.getStatus() != CoreCommon.EntityStatus.ENTITY_STATUS_NULL)
+                query = qDepartment.status.eq(q.getStatusValue()).and(query);
+            QueryResults<Department> results;
+            CoreCommon.Pagination pagination = request.getPagination();
+            long limit = pagination.getSize();
+            if (limit <= 0) limit = 20;
+            switch (pagination.getSort()) {
+                case SORT_TYPE_ID_DESC:
+                case SORT_TYPE_TIME_DESC:
+                    results = queryFactory.selectFrom(qDepartment).where(query).orderBy(qDepartment.id.desc())
+                            .offset(pagination.getIdx()).limit(limit).fetchResults();
+                    break;
+                default:
+                    results = queryFactory.selectFrom(qDepartment).where(query).orderBy(qDepartment.id.asc())
+                            .offset(pagination.getIdx()).limit(limit).fetchResults();
+                    break;
+            }
+            CoreCommon.DeptsResp.Builder resp = CoreCommon.DeptsResp.newBuilder();
+            resp.addAllData(results.getResults().stream().map(Department::toProto).collect(Collectors.toList()));
+            resp.setPagination(CommonUtils.buildPagination(results.getOffset(), results.getLimit(), results.getTotal()));
+            responseObserver.onNext(resp.build());
+            responseObserver.onCompleted();
+
+        } catch (RuntimeException e) {
+            logger.error(e.toString());
+            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+        }
+    }
+
+    @Override
+    public void updateMessages(DalUser.MessagesReq request, StreamObserver<CoreCommon.Empty> responseObserver) {
+        try {
+            if (request.getDataCount() <= 0) {
+                responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("INVALID_ARG:data"));
+                return;
+            }
+            Map<Long, CoreCommon.Message> msgMap = new HashMap<>();
+            List<Message> messagesToSave = new ArrayList<>();
+            request.getDataList().forEach(x -> {
+                if (x.getId() == 0L) {
+                    Message message = new Message();
+                    message.setId(idGen.nextId());
+                    message.fromProto(x);
+                    if (message.getUserId() == 0L) message.setUserId(request.getUserId());
+                    if (message.getOrgId() == 0L) message.setOrgId(request.getOrgId());
+                    messagesToSave.add(message);
+                } else {
+                    msgMap.put(x.getId(), x);
+                }
+            });
+            if (msgMap.size() > 0) {
+                List<Message> msgs = messageRepository.findAllById(msgMap.keySet());
+                msgs.forEach(x -> {
+                    if (!msgMap.containsKey(x.getId())) return;
+                    x.fromProto(msgMap.get(x.getId()));
+                    messagesToSave.add(x);
+                });
+            }
+            messageRepository.saveAll(messagesToSave);
             responseObserver.onNext(CoreCommon.Empty.newBuilder().build());
             responseObserver.onCompleted();
         } catch (RuntimeException e) {
@@ -413,33 +585,9 @@ public class UserService extends DalUserServiceGrpc.DalUserServiceImplBase {
     }
 
     @Override
-    public void updateMessage(DalUser.UpdateMessageReq request, StreamObserver<CoreCommon.Empty> responseObserver) {
-        try {
-            Optional<Message> msgOptional = messageRepository.findById(request.getMessage().getId());
-            if (msgOptional.isPresent()) {
-                Message msg = msgOptional.get();
-                msg.fromProto(request.getMessage());
-                messageRepository.save(msg);
-                responseObserver.onNext(CoreCommon.Empty.newBuilder().build());
-                responseObserver.onCompleted();
-            } else {
-                responseObserver.onError(GrpcStatusException.GrpcNotFoundException());
-            }
-        } catch (RuntimeException e) {
-            logger.error(e.toString());
-            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
-        }
-    }
-
-    @Override
     public void readInbox(DalUser.ReadInboxReq request, StreamObserver<CoreCommon.MessageResp> responseObserver) {
 
         super.readInbox(request, responseObserver);
-    }
-
-    @Override
-    public void updateInbox(DalUser.UpdateInboxReq request, StreamObserver<CoreCommon.Empty> responseObserver) {
-        super.updateInbox(request, responseObserver);
     }
 
     @Override
@@ -448,34 +596,32 @@ public class UserService extends DalUserServiceGrpc.DalUserServiceImplBase {
     }
 
     @Override
-    public void createRelations(DalUser.RelationsReq request, StreamObserver<CoreCommon.Empty> responseObserver) {
+    public void updateRelations(DalUser.UpdateRelationsReq request, StreamObserver<CoreCommon.Empty> responseObserver) {
         try {
-            List<Relation> relationList = request.getRelationList().stream().map(x -> {
-                Relation relat = new Relation();
-                relat.setId(idGen.nextId());
-                relat.fromProto(x);
-                return relat;
-            }).collect(Collectors.toList());
-            relationsRepository.saveAll(relationList);
-            responseObserver.onNext(CoreCommon.Empty.newBuilder().build());
-            responseObserver.onCompleted();
-        } catch (RuntimeException e) {
-            logger.error(e.toString());
-            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
-        }
-    }
-
-    @Override
-    public void updateRelations(DalUser.RelationsReq request, StreamObserver<CoreCommon.Empty> responseObserver) {
-        try {
-            Map<Long, CoreCommon.Relation> relationsMap = request.getRelationList().stream()
-                    .collect(Collectors.toMap(CoreCommon.Relation::getId, x -> x));
-
-            List<Relation> relations = relationsRepository.findAllById(relationsMap.keySet());
-            for(Relation relation : relations) {
-                relation.fromProto(relationsMap.get(relation.getId()));
+            Map<Long, CoreCommon.Relation> relationMap = new HashMap<>();
+            List<Relation> relationsToSave = new ArrayList<>();
+            request.getRelationList().forEach(x -> {
+                if (x.getId() == 0L) {
+                    Relation relat = new Relation();
+                    relat.setId(idGen.nextId());
+                    relat.fromProto(x);
+                    if (relat.getStatus() == CoreCommon.EntityStatus.ENTITY_STATUS_NULL_VALUE)
+                        relat.setStatus(CoreCommon.EntityStatus.ENTITY_STATUS_NORMAL_VALUE);
+                    relationsToSave.add(relat);
+                } else {
+                    relationMap.put(x.getId(), x);
+                }
+            });
+            if (relationMap.size() > 0) {
+                List<Relation> relations = relationsRepository.findAllById(relationMap.keySet());
+                relations.forEach(x -> {
+                    if (!relationMap.containsKey(x.getId())) return;
+                    x.fromProto(relationMap.get(x.getId()));
+                    relationsToSave.add(x);
+                });
             }
-            relationsRepository.saveAll(relations);
+
+            relationsRepository.saveAll(relationsToSave);
             responseObserver.onNext(CoreCommon.Empty.newBuilder().build());
             responseObserver.onCompleted();
         } catch (RuntimeException e) {
@@ -513,7 +659,7 @@ public class UserService extends DalUserServiceGrpc.DalUserServiceImplBase {
     }
 
     @Override
-    public void readRelations(DalUser.ReadRelationReq request, StreamObserver<CoreCommon.RelationsResp> responseObserver) {
+    public void readRelations(DalUser.ReadRelationsReq request, StreamObserver<CoreCommon.RelationsResp> responseObserver) {
         try {
             CoreCommon.RelationsResp.Builder builder = CoreCommon.RelationsResp.newBuilder();
             long size = request.getPagination().getSize();
@@ -531,77 +677,63 @@ public class UserService extends DalUserServiceGrpc.DalUserServiceImplBase {
     }
 
     @Override
-    public void readDeptRelations(DalUser.ReadRelationReq request, StreamObserver<CoreCommon.DeptRelationsResp> responseObserver) {
+    public void readPartners(DalUser.ReadPartnersReq request, StreamObserver<CoreCommon.PartnersResp> responseObserver) {
         try {
-            CoreCommon.DeptRelationsResp.Builder builder = CoreCommon.DeptRelationsResp.newBuilder();
-
+            CoreCommon.PartnersResp.Builder builder = CoreCommon.PartnersResp.newBuilder();
             long size = request.getPagination().getSize();
             if (size == 0L) size = 20;
 
-            QueryResults<Relation> res = queryRelations(request.getRelation(), request.getPagination().getIdx(), size);
-
-            List<Relation> relations = res.getResults();
-            builder.addAllRelations(relations.stream().map(Relation::toProto).collect(Collectors.toList()));
-            Map<Long, CoreCommon.User> sourceMap = new HashMap<>();
-            Map<Long, CoreCommon.Department> targetMap = new HashMap<>();
-            for (Relation r : relations) {
-                sourceMap.put(r.getSourceId(), null);
-                targetMap.put(r.getTargetId(), null);
-            }
-            List<User> users = userRepository.findAllById(sourceMap.keySet());
-            List<Department> depts = departmentRepository.findAllById(targetMap.keySet());
-            for (User user : users) sourceMap.put(user.getId(), user.toProto());
-            for (Department dept: depts) targetMap.put(dept.getId(), dept.toProto());
-            builder.setPagination(CommonUtils.buildPagination(res.getOffset(), res.getLimit(), res.getTotal()));
-
-            builder.putAllUserMap(sourceMap);
-            builder.putAllDeptMap(targetMap);
-
-            responseObserver.onNext(builder.build());
-            responseObserver.onCompleted();
-        } catch (RuntimeException e) {
-            logger.error(e.toString());
-            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
-        }
-    }
-    @Override
-    public void readPartnerRelations(DalUser.ReadRelationReq request, StreamObserver<CoreCommon.PartnerRelationsResp> responseObserver) {
-        try {
-            CoreCommon.PartnerRelationsResp.Builder builder = CoreCommon.PartnerRelationsResp.newBuilder();
-            long size = request.getPagination().getSize();
-            if (size == 0L) size = 20;
-            QueryResults<Relation> res = queryRelations(request.getRelation(), request.getPagination().getIdx(), size);
-
-            List<Relation> relations = res.getResults();
-            builder.addAllRelations(relations.stream().map(Relation::toProto).collect(Collectors.toList()));
-
-            Map<Long, CoreCommon.Organization> sourceMap = new HashMap<>();
-            Map<Long, CoreCommon.User> targetMap = new HashMap<>();
-            for (Relation r : relations) {
-                sourceMap.put(r.getSourceId(), null);
-                targetMap.put(r.getTargetId(), null);
-            }
-
+            QRelation qRelation = QRelation.relation;
+            QOrganization qOrganization = QOrganization.organization;
             QUser qUser = QUser.user;
             QUserOrgs qUserOrgs = QUserOrgs.userOrgs;
+            BooleanExpression query = null;
+            if (!request.getOrgSerialNumber().equals("")) query = qOrganization.code.like(request.getOrgSerialNumber() + "%");
+            if (!request.getOrgName().equals("")) query = qOrganization.name.like(request.getOrgName() + "%").or(query);
+            if (!request.getContactName().equals("")) query = qUser.name.like(request.getContactName() + "%").or(query);
+            if (!request.getContactPhone().equals("")) query = qUser.phone.like(request.getContactPhone() + "%").or(query);
+            if (!request.getContactEmail().equals("")) query = qUser.email.like(request.getContactEmail() + "%").or(query);
+            QueryResults<Relation> relations = queryFactory.selectFrom(qRelation)
+                    .leftJoin(qUser).on(qUser.id.eq(qRelation.targetId))
+                    .leftJoin(qUserOrgs).on(qUserOrgs.userId.eq(qRelation.targetId))
+                    .leftJoin(qOrganization).on(qOrganization.id.eq(qUserOrgs.orgId))
+                    .where(query).offset(request.getPagination().getIdx()).limit(size).distinct().fetchResults();
 
-            List<Tuple> userOrgRes = queryFactory.select(qUser, qUserOrgs).from(qUserOrgs).leftJoin(qUser).on(qUser.id.eq(qUserOrgs.userId))
-                    .where(qUserOrgs.userId.in(targetMap.keySet())).fetch();
+            builder.addAllRelations(relations.getResults().stream().map(Relation::toProto).collect(Collectors.toList()));
+            builder.setPagination(CommonUtils.buildPagination(relations.getOffset(), relations.getLimit(), relations.getTotal()));
 
-            for(Tuple tuple: userOrgRes) {
-                UserOrgs org = tuple.get(qUserOrgs);
-                if (org != null && org.getOrgId() != 0L && org.getOrgId() != 1L) sourceMap.put(org.getOrgId(), null);
-                User user = tuple.get(qUser);
-                if (user != null) targetMap.put(user.getId(), user.toProto());
+            // ************************************* 根据查询结果组织user、org信息
+            if (relations.getResults().size() > 0) {
+                List<User> userList = new ArrayList<>();
+                List<Long> userIds = new ArrayList<>();
+                Map<Long, Long> userOrgMap = new HashMap<>();
+
+                for (Relation r : relations.getResults()) userIds.add(r.getTargetId());
+
+                List<Tuple> userOrgRes = queryFactory.select(qUser, qUserOrgs).from(qUserOrgs)
+                        .leftJoin(qUser).on(qUser.id.eq(qUserOrgs.userId))
+                        .where(qUserOrgs.userId.in(userIds)).fetch();
+
+                for (Tuple tuple : userOrgRes) {
+                    User user = tuple.get(qUser);
+                    UserOrgs org = tuple.get(qUserOrgs);
+                    if (user != null) {
+                        userList.add(user);
+                        if (org != null && org.getOrgId() != 1L) userOrgMap.put(user.getId(), org.getOrgId());
+                    }
+                }
+                List<Organization> organizations = organizationRepository.findAllById(userOrgMap.values());
+                // todo possible multiple organizations
+                Map<Long, Organization> orgMap = organizations.stream().collect(Collectors.toMap(Organization::getId, x->x));
+                for(User user : userList) {
+                    CoreCommon.UserWithOrgInfo.Builder userOrgBuilder = CoreCommon.UserWithOrgInfo.newBuilder();
+                    userOrgBuilder.setUser(user.toProto());
+                    if (userOrgMap.containsKey(user.getId()) && orgMap.containsKey(userOrgMap.get(user.getId()))) {
+                        userOrgBuilder.addOrgs(orgMap.get(userOrgMap.get(user.getId())).toProto());
+                    }
+                    builder.putUserMap(user.getId(), userOrgBuilder.build());
+                }
             }
-
-            List<Organization> organizations = organizationRepository.findAllById(targetMap.keySet());
-            for (Organization org : organizations) sourceMap.put(org.getId(), org.toProto());
-            builder.setPagination(CommonUtils.buildPagination(res.getOffset(), res.getLimit(), res.getTotal()));
-
-            builder.putAllOrgMap(sourceMap);
-            builder.putAllUserMap(targetMap);
-
             responseObserver.onNext(builder.build());
             responseObserver.onCompleted();
         } catch (RuntimeException e) {
@@ -611,9 +743,9 @@ public class UserService extends DalUserServiceGrpc.DalUserServiceImplBase {
     }
 
     @Override
-    public void readOrgPartnersIn(DalUser.ReadOrgPartnersInReq request, StreamObserver<CoreCommon.PartnerRelationsResp> responseObserver) {
+    public void readPartnersIn(DalUser.ReadPartnersInReq request, StreamObserver<CoreCommon.PartnersResp> responseObserver) {
         try {
-            CoreCommon.PartnerRelationsResp.Builder builder = CoreCommon.PartnerRelationsResp.newBuilder();
+            CoreCommon.PartnersResp.Builder builder = CoreCommon.PartnersResp.newBuilder();
             QRelation qRelations = QRelation.relation;
             List<Relation> relationList = queryFactory.selectFrom(qRelations).where(
                     qRelations.sourceId.eq(request.getOrgId())

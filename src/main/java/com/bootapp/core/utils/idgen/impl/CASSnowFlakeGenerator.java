@@ -64,7 +64,7 @@ public class CASSnowFlakeGenerator implements IDGenerator {
             Long index = curTimestamp % SEQUENCE_RING_CAPACITY;
             int idx = index.intValue();
             long lastId = sequences.get(idx);
-            Long lastTimestamp = lastId << TIMESTAMP_SHL;
+            Long lastTimestamp = lastId >> TIMESTAMP_SHL;
             if (lastTimestamp == 0L || lastTimestamp < curTimestamp) {
                 long newId = (curTimestamp << TIMESTAMP_SHL) |
                         (dataCenterId << DATA_CENTER_SHL) |
