@@ -23,7 +23,7 @@ public class Organization extends AbstractEntity {
     public CoreCommon.Organization toProto() {
         CoreCommon.Organization.Builder builder = CoreCommon.Organization.newBuilder();
         builder.setId(id);
-        builder.setCode(code);
+        if (code != null) builder.setCode(code);
         builder.setOrgRoleId(orgRoleId);
         if (name != null) builder.setName(name);
         builder.setStatusValue(status);

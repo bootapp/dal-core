@@ -1,5 +1,7 @@
 package com.bootapp.core.domain;
 
+import com.bootapp.core.grpc.CoreCommon;
+
 import javax.persistence.*;
 
 @Entity
@@ -18,6 +20,19 @@ public class RoleOrg extends AbstractEntity {
     @Lob
     @Column(name = "authorities")
     String authorities;
+
+    public void fromProto(CoreCommon.RoleOrgEdit proto) {
+        if (proto.hasName()) name = proto.getName().getValue();
+
+    }
+    public CoreCommon.RoleOrg toProto() {
+        CoreCommon.RoleOrg.Builder builder = CoreCommon.RoleOrg.newBuilder();
+        builder.setId(id);
+        if (name != null) builder.setName(name);
+        if (remark != null) builder.setRemark(remark);
+        if (authorities != null) builder.setAuthorities(authorities);
+        return builder.build();
+    }
 
     public long getId() {
         return id;

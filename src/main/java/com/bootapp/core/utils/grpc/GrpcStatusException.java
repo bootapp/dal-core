@@ -24,4 +24,7 @@ public class GrpcStatusException {
     public static RuntimeException GrpcNotFoundException() {
         return Status.NOT_FOUND.withDescription("NON_EXISTS").asRuntimeException();
     }
+    public static RuntimeException GrpcUnauthorizedException() {
+        return Status.PERMISSION_DENIED.withDescription("UNAUTHORIZED").asRuntimeException();
+    }
 }

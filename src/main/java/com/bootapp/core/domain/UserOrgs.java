@@ -1,5 +1,7 @@
 package com.bootapp.core.domain;
 
+import com.bootapp.core.grpc.DalUser;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -59,5 +61,15 @@ public class UserOrgs extends AbstractEntity {
 
     public void setUserRoleId(long userRoleId) {
         this.userRoleId = userRoleId;
+    }
+
+
+    public DalUser.UserOrg toProto() {
+        DalUser.UserOrg.Builder proto = DalUser.UserOrg.newBuilder();
+        proto.setId(id);
+        proto.setUserId(userId);
+        proto.setOrgId(orgId);
+        proto.setUserRoleId(userRoleId);
+        return proto.build();
     }
 }

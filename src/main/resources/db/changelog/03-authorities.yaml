@@ -7,55 +7,35 @@ databaseChangeLog:
             tableName: authorities
             columns:
               - column:
-                  name: group_auth_key
-                  type: VARCHAR(50)
-                  constraints:
-                    - nullable: false
-              - column:
-                  name: auth_key
+                  name: key
                   type: VARCHAR(50)
                   constraints:
                     - primaryKey: true
                     - nullable: false
                     - updatable: false
               - column:
-                  name: auth_value
+                  name: group_id
+                  type: BigInt
+              - column:
+                  name: value
                   type: BigInt
               - column:
                   name: name
                   type: VARCHAR(50)
-              - column:
-                  name: status
-                  type: Int
-              - column:
-                  name: create_at
-                  type: BigInt
-              - column:
-                  name: update_at
-                  type: BigInt
         - loadData:
             file: "db/data/authorities.csv"
             separator: '@'
             tableName: authorities
             columns:
               - column:
-                  name: group_auth_key
+                  name: key
                   type: string
               - column:
-                  name: auth_key
-                  type: string
+                  name: group_id
+                  type: numeric
               - column:
-                  name: auth_value
+                  name: value
                   type: numeric
               - column:
                   name: name
                   type: string
-              - column:
-                  name: status
-                  type: numeric
-              - column:
-                  name: create_at
-                  type: numeric
-              - column:
-                  name: update_at
-                  type: numeric

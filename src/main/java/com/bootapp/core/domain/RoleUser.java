@@ -1,5 +1,7 @@
 package com.bootapp.core.domain;
 
+import com.bootapp.core.grpc.CoreCommon;
+
 import javax.persistence.*;
 
 @Entity
@@ -22,6 +24,20 @@ public class RoleUser extends AbstractEntity {
     @Column(name = "authorities")
     String authorities;
 
+    public void fromProto(CoreCommon.RoleUserEdit proto) {
+        if (proto.hasName()) name = proto.getName().getValue();
+        if (proto.hasRemark()) remark = proto.getRemark().getValue();
+        if (proto.hasAuthorities()) authorities = proto.getAuthorities().getValue();
+    }
+    public CoreCommon.RoleUser toProto() {
+        CoreCommon.RoleUser.Builder builder = CoreCommon.RoleUser.newBuilder();
+        builder.setId(id);
+        builder.setOrgId(orgId);
+        if (name != null) builder.setName(name);
+        if (remark != null) builder.setRemark(remark);
+        if (authorities != null) builder.setAuthorities(authorities);
+        return builder.build();
+    }
     public long getId() {
         return id;
     }

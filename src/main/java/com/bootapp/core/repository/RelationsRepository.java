@@ -8,5 +8,4 @@ import java.util.Optional;
 
 public interface RelationsRepository extends JpaRepository<Relation, Long> {
     void deleteByIdIn(List<Long> ids);
-    Optional<Relation> findOneByTargetIdAndRelationType(long targetId, int relationType);
 }
