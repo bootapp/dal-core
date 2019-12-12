@@ -12,5 +12,5 @@ databaseChangeLog:
                   constraints:
                     - primaryKey: true
               - column:
-                  name: update_at
+                  name: updated_at
                   type: BigInt

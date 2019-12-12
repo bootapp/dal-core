@@ -26,14 +26,14 @@ databaseChangeLog:
                   name: status
                   type: Int
               - column:
-                  name: create_by
+                  name: created_by
                   type: BigInt
               - column:
-                  name: last_update_by
+                  name: last_updated_by
                   type: BigInt
               - column:
-                  name: create_at
+                  name: created_at
                   type: BigInt
               - column:
-                  name: update_at
+                  name: updated_at
                   type: BigInt

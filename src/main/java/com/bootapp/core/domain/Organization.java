@@ -27,8 +27,8 @@ public class Organization extends AbstractEntity {
         builder.setOrgRoleId(orgRoleId);
         if (name != null) builder.setName(name);
         builder.setStatusValue(status);
-        builder.setCreateAt(createAt);
-        builder.setUpdateAt(updateAt);
+        builder.setCreatedAt(createdAt);
+        builder.setUpdatedAt(updatedAt);
         return builder.build();
     }
     public void fromProto(CoreCommon.OrganizationEdit proto) {

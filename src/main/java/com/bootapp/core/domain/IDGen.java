@@ -11,16 +11,16 @@ public class IDGen {
     @Id
     long id;
 
-    @Column(name = "update_at")
-    long updateAt;
+    @Column(name = "updated_at")
+    long updatedAt;
 
     public IDGen() {
         this.id = 0L;
-        this.updateAt = 0L;
+        this.updatedAt = 0L;
     }
     public IDGen(long id, long updateAt) {
         this.id = id;
-        this.updateAt = updateAt;
+        this.updatedAt = updateAt;
     }
 
     public long getId() {
@@ -31,11 +31,11 @@ public class IDGen {
         this.id = id;
     }
 
-    public long getUpdateAt() {
-        return updateAt;
+    public long getUpdatedAt() {
+        return updatedAt;
     }
 
-    public void setUpdateAt(long updateAt) {
-        this.updateAt = updateAt;
+    public void setUpdatedAt(long updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

@@ -415,8 +415,8 @@ public class UserService {
             queryExpressions = queryExpressions.and(qMessage.receiveType.eq(msgReq.getReceiveTypeValue()));
         if (msgReq.getTo() != 0L)
             queryExpressions = queryExpressions.and(qMessage.sendTo.eq(msgReq.getTo()));
-        if (msgReq.getUpdateAt()  != 0L)
-            queryExpressions = queryExpressions.and(qMessage.updateAt.lt(msgReq.getUpdateAt()));
+        if (msgReq.getUpdatedAt()  != 0L)
+            queryExpressions = queryExpressions.and(qMessage.updatedAt.lt(msgReq.getUpdatedAt()));
         if (msgReq.hasTitle())
             queryExpressions = queryExpressions.and(qMessage.title.like(msgReq.getTitle().getValue() + "%"));
         if (msgReq.getStatus() != CoreCommon.EntityStatus.ENTITY_STATUS_NULL)

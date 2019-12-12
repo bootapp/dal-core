@@ -54,8 +54,8 @@ public class Relation extends AbstractEntity {
         if (value1 != null) builder.setValue1(StringValue.of(value1));
         if (value2 != null) builder.setValue2(StringValue.of(value2));
         builder.setStatusValue(status);
-        builder.setCreateAt(createAt);
-        builder.setUpdateAt(updateAt);
+        builder.setCreatedAt(createdAt);
+        builder.setUpdatedAt(updatedAt);
         return builder.build();
     }
     public long getId() {

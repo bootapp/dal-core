@@ -46,8 +46,8 @@ public class User extends AbstractEntity {
         if (this.email != null && !this.email.equals("")) builder.setEmail(StringValue.of(this.email));
         if (this.username != null && !this.username.equals("")) builder.setUsername(StringValue.of(this.username));
         if (this.name != null && !this.name.equals("")) builder.setName(StringValue.of(this.name));
-        builder.setCreateAt(this.createAt);
-        builder.setUpdateAt(this.updateAt);
+        builder.setCreatedAt(this.createdAt);
+        builder.setUpdatedAt(this.updatedAt);
         return builder.buildPartial();
     }
     public long getId() {

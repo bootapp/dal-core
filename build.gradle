@@ -1,8 +1,8 @@
 plugins {
     id 'java'
     id 'idea'
-    id 'org.springframework.boot' version '2.1.7.RELEASE'
-    id "org.liquibase.gradle" version "2.0.1"
+    id 'org.springframework.boot' version '2.2.2.RELEASE'
+    id "org.liquibase.gradle" version "2.0.2"
     id "com.google.protobuf" version "0.8.10"
 }
 
@@ -30,7 +30,7 @@ sourceSets {
     }
 }
 
-def queryDslVersion = '4.2.1'
+def queryDslVersion = '4.2.2'
 dependencies {
     implementation 'org.mindrot:jbcrypt:0.4'
     //jpa
@@ -44,7 +44,7 @@ dependencies {
             "org.hibernate.javax.persistence:hibernate-jpa-2.1-api:1.0.2.Final",
     )
     //grpc
-    implementation 'io.github.lognet:grpc-spring-boot-starter:3.4.1'
+    implementation 'io.github.lognet:grpc-spring-boot-starter:3.5.0'
     //jdbc
     implementation 'mysql:mysql-connector-java'
 
@@ -55,9 +55,9 @@ dependencies {
 }
 
 protobuf {
-    protoc {artifact = 'com.google.protobuf:protoc:3.5.1-1'}
+    protoc {artifact = 'com.google.protobuf:protoc:3.11.1'}
     plugins {
-        grpc { artifact = "io.grpc:protoc-gen-grpc-java:1.19.0" }
+        grpc { artifact = "io.grpc:protoc-gen-grpc-java:1.25.0" }
     }
     generateProtoTasks {
         all()*.plugins { grpc {outputSubDir = "java"} }

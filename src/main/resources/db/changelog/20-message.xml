@@ -38,10 +38,16 @@
             <column name="status" type="integer">
                 <constraints nullable="true" />
             </column>
-            <column name="create_at" type="bigint">
+            <column name="created_at" type="bigint">
                 <constraints nullable="true" />
             </column>
-            <column name="update_at" type="bigint">
+            <column name="updated_at" type="bigint">
+                <constraints nullable="true" />
+            </column>
+            <column name="created_by" type="bigint">
+                <constraints nullable="true" />
+            </column>
+            <column name="last_updated_by" type="bigint">
                 <constraints nullable="true" />
             </column>
             <!-- jhipster-needle-liquibase-add-column - JHipster will add columns here, do not remove-->

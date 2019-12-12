@@ -31,8 +31,8 @@ public class Department extends AbstractEntity {
         if (description != null) builder.setDescription(description);
         if (remark != null) builder.setRemark(remark);
         builder.setStatusValue(this.getStatus());
-        builder.setCreateAt(this.getCreateAt());
-        builder.setUpdateAt(this.getUpdateAt());
+        builder.setCreatedAt(this.getCreatedAt());
+        builder.setUpdatedAt(this.getUpdatedAt());
         return builder.build();
     }
 

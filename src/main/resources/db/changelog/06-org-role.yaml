@@ -26,10 +26,16 @@ databaseChangeLog:
                   name: status
                   type: Int
               - column:
-                  name: create_at
+                  name: created_at
                   type: BigInt
               - column:
-                  name: update_at
+                  name: updated_at
+                  type: BigInt
+              - column:
+                  name: created_by
+                  type: BigInt
+              - column:
+                  name: last_updated_by
                   type: BigInt
         - loadData:
             file: "db/data/org_roles.csv"
@@ -52,8 +58,14 @@ databaseChangeLog:
                   name: status
                   type: numeric
               - column:
-                  name: create_at
+                  name: created_at
                   type: numeric
               - column:
-                  name: update_at
+                  name: updated_at
+                  type: numeric
+              - column:
+                  name: created_by
+                  type: numeric
+              - column:
+                  name: last_updated_by
                   type: numeric

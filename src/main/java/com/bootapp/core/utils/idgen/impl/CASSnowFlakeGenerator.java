@@ -54,7 +54,7 @@ public class CASSnowFlakeGenerator implements IDGenerator {
 
     @Scheduled(initialDelay = GEN_ID_RENEW_WINDOW, fixedRate = GEN_ID_RENEW_WINDOW)
     private void renewGenId() {
-        this.genInstance.setUpdateAt(System.currentTimeMillis());
+        this.genInstance.setUpdatedAt(System.currentTimeMillis());
         genRepository.save(this.genInstance);
     }
 
