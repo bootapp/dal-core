@@ -1,4 +1,6 @@
-auth_key@auth_value@module_id@name@status@created_at@updated_at@created_by@last_updated_by
-G_NULL@0@1@无@1@0@0@0@0
-G_SYS@1@1@系统管理@1@0@0@0@0
-G_ORG@2@1@组织管理@1@0@0@0@0
+id@pid@name
+0@0@无
+1@0@基础数据模块
+2@0@系统管理模块
+500@1@基础数据
+550@2@系统管理
