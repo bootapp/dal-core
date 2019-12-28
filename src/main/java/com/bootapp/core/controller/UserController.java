@@ -15,8 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -67,7 +65,6 @@ public class UserController extends DalUserServiceGrpc.DalUserServiceImplBase {
             responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
         }
     }
-
     @Override
     public void createUsersWithNewOrg(DalUser.CreateUsersWithOrgReq request, StreamObserver<CoreCommon.UsersResp> responseObserver) {
         try {
@@ -83,7 +80,6 @@ public class UserController extends DalUserServiceGrpc.DalUserServiceImplBase {
             responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
         }
     }
-
     @Override
     public void readUserAuth(DalUser.ReadUserReq request, StreamObserver<CoreCommon.UserWithOrgAuth> responseObserver) {
         try {
@@ -286,9 +282,12 @@ public class UserController extends DalUserServiceGrpc.DalUserServiceImplBase {
     @Override
     public void readMessages(DalUser.ReadMessagesReq request, StreamObserver<CoreCommon.MessageResp> responseObserver) {
         try {
-            responseObserver.onNext(userService.readMessages(request).buildPartial());
-            responseObserver.onCompleted();
-
+            if (request.getFromUserId() == 0L && request.getToUserId() == 0L)
+                responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("INVALID_ARG:from, to"));
+            else {
+                responseObserver.onNext(userService.readMessages(request).build());
+                responseObserver.onCompleted();
+            }
         } catch (RuntimeException e) {
             logger.error(e.toString());
             responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
@@ -296,14 +295,27 @@ public class UserController extends DalUserServiceGrpc.DalUserServiceImplBase {
     }
 
     @Override
-    public void readInbox(DalUser.ReadInboxReq request, StreamObserver<CoreCommon.MessageResp> responseObserver) {
-
-        super.readInbox(request, responseObserver);
+    public void updateInbox(DalUser.UpdateInboxReq request, StreamObserver<CoreCommon.Empty> responseObserver) {
+        try {
+            userService.updateInbox(request);
+            responseObserver.onNext(CoreCommon.Empty.getDefaultInstance());
+            responseObserver.onCompleted();
+        } catch (RuntimeException e) {
+            logger.error(e.toString());
+            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+        }
     }
 
     @Override
     public void deleteInbox(DalUser.UpdateInboxReq request, StreamObserver<CoreCommon.Empty> responseObserver) {
-        super.deleteInbox(request, responseObserver);
+        try {
+            userService.deleteInbox(request);
+            responseObserver.onNext(CoreCommon.Empty.getDefaultInstance());
+            responseObserver.onCompleted();
+        } catch (RuntimeException e) {
+            logger.error(e.toString());
+            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+        }
     }
 
     @Override
@@ -318,7 +330,6 @@ public class UserController extends DalUserServiceGrpc.DalUserServiceImplBase {
         }
     }
 
-    @Transactional
     @Override
     public void deleteRelations(CoreCommon.AuthorizedIdsReq request, StreamObserver<CoreCommon.Empty> responseObserver) {
         try {
@@ -370,4 +381,79 @@ public class UserController extends DalUserServiceGrpc.DalUserServiceImplBase {
             responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
         }
     }
+
+    @Override
+    public void createSimpleRelation(DalUser.SimpleRelationReq request, StreamObserver<CoreCommon.Empty> responseObserver) {
+        try {
+            userService.createSimpleRelation(request);
+            responseObserver.onNext(CoreCommon.Empty.getDefaultInstance());
+            responseObserver.onCompleted();
+        } catch (RuntimeException e) {
+            logger.error(e.toString());
+            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+        }
+    }
+
+    @Override
+    public void deleteSimpleRelation(DalUser.SimpleRelationReq request, StreamObserver<CoreCommon.Empty> responseObserver) {
+        try {
+            userService.deleteSimpleRelation(request);
+            responseObserver.onNext(CoreCommon.Empty.getDefaultInstance());
+            responseObserver.onCompleted();
+        } catch (RuntimeException e) {
+            logger.error(e.toString());
+            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+        }
+    }
+
+    @Override
+    public void readSimpleRelations(DalUser.SimpleRelationReq request, StreamObserver<CoreCommon.SimpleRelationList> responseObserver) {
+        try {
+            if (request.getUserId() == 0L && request.getToId() == 0L) {
+                responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("INVALID_ARG:userId, toUserId"));
+                return;
+            }
+            responseObserver.onNext(userService.readSimpleRelations(request));
+            responseObserver.onCompleted();
+        } catch (RuntimeException e) {
+            logger.error(e.toString());
+            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+        }
+    }
+
+    @Override
+    public void updateDictItems(DalUser.DictItemsReq request, StreamObserver<CoreCommon.Empty> responseObserver) {
+        try {
+            userService.updateDictItems(request);
+            responseObserver.onNext(CoreCommon.Empty.getDefaultInstance());
+            responseObserver.onCompleted();
+        } catch (RuntimeException e) {
+            logger.error(e.toString());
+            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+        }
+    }
+
+    @Override
+    public void readDictItems(DalUser.ReadDictItemsReq request, StreamObserver<CoreCommon.DictItemList> responseObserver) {
+        try {
+            responseObserver.onNext(userService.readDictItems(request));
+            responseObserver.onCompleted();
+        } catch (RuntimeException e) {
+            logger.error(e.toString());
+            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+        }
+    }
+
+    @Override
+    public void deleteDictItems(CoreCommon.AuthorizedIdsReq request, StreamObserver<CoreCommon.Empty> responseObserver) {
+        try {
+            userService.deleteDictItems(request);
+            responseObserver.onNext(CoreCommon.Empty.getDefaultInstance());
+            responseObserver.onCompleted();
+        } catch (RuntimeException e) {
+            logger.error(e.toString());
+            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+        }
+    }
+
 }

@@ -43,8 +43,12 @@ public class Message extends AbstractEntity {
     public void fromProto(CoreCommon.Message proto) {
         if (proto.getType() != CoreCommon.MessageType.MESSAGE_TYPE_NULL)
             type = proto.getTypeValue();
+        else type = CoreCommon.MessageType.MESSAGE_TYPE_USER_VALUE;
+
         if (proto.getReceiveType() != CoreCommon.ReceiveType.RECEIVE_TYPE_NULL)
             receiveType = proto.getReceiveTypeValue();
+        else receiveType = CoreCommon.ReceiveType.RECEIVE_TYPE_SITE_VALUE;
+
         if (proto.getUserId() != 0L) userId = proto.getUserId();
         if (proto.getOrgId() != 0L) orgId = proto.getOrgId();
         if (proto.getTo() != 0L) sendTo = proto.getTo();
@@ -54,6 +58,9 @@ public class Message extends AbstractEntity {
     }
 
     public CoreCommon.Message toProto() {
+        return toProtoBuilder().build();
+    }
+    public CoreCommon.Message.Builder toProtoBuilder() {
         CoreCommon.Message.Builder msgResp = CoreCommon.Message.newBuilder();
         msgResp.setId(id);
         msgResp.setUserId(userId);
@@ -64,7 +71,10 @@ public class Message extends AbstractEntity {
         msgResp.setTitle(StringValue.of(title));
         msgResp.setContent(StringValue.of(content));
         msgResp.setFiles(StringValue.of(files));
-        return msgResp.buildPartial();
+        msgResp.setCreatedAt(createdAt);
+        msgResp.setUpdatedAt(updatedAt);
+        msgResp.setStatusValue(status);
+        return msgResp;
     }
 
     public long getId() {

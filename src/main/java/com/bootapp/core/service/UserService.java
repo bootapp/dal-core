@@ -1,5 +1,6 @@
 package com.bootapp.core.service;
 
+import com.bootapp.core.config.Constants;
 import com.bootapp.core.domain.*;
 import com.bootapp.core.grpc.CoreCommon;
 import com.bootapp.core.grpc.DalUser;
@@ -14,8 +15,6 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.mindrot.jbcrypt.BCrypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,11 +32,17 @@ public class UserService {
     private final MessageRepository messageRepository;
     private final RoleOrgRepository roleOrgRepository;
     private final RoleUserRepository roleUserRepository;
+    private final RelationVisitRepository relationVisitRepository;
+    private final RelationFollowRepository relationFollowRepository;
+    private final RelationBlacklistRepository relationBlacklistRepository;
+    private final InboxRepository inboxRepository;
+    private final DictItemRepository dictItemRepository;
     private final IDGenerator idGen;
     private JPAQueryFactory queryFactory;
+    private Base64.Decoder base64Decoder;
     private Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    public UserService(UserRepository userRepository, UserOrgsRepository userOrgsRepository, RelationsRepository relationsRepository, OrganizationRepository organizationRepository, DepartmentRepository departmentRepository, MessageRepository messageRepository, RoleOrgRepository roleOrgRepository, RoleUserRepository roleUserRepository, IDGenerator idGen, EntityManager em) {
+    public UserService(UserRepository userRepository, UserOrgsRepository userOrgsRepository, RelationsRepository relationsRepository, OrganizationRepository organizationRepository, DepartmentRepository departmentRepository, MessageRepository messageRepository, RoleOrgRepository roleOrgRepository, RoleUserRepository roleUserRepository, RelationVisitRepository relationVisitRepository, RelationFollowRepository relationFollowRepository, RelationBlacklistRepository blacklistRepository, InboxRepository inboxRepository, DictItemRepository dictItemRepository, IDGenerator idGen, EntityManager em) {
         this.userRepository = userRepository;
         this.userOrgsRepository = userOrgsRepository;
         this.relationsRepository = relationsRepository;
@@ -46,8 +51,14 @@ public class UserService {
         this.messageRepository = messageRepository;
         this.roleOrgRepository = roleOrgRepository;
         this.roleUserRepository = roleUserRepository;
+        this.relationVisitRepository = relationVisitRepository;
+        this.relationFollowRepository = relationFollowRepository;
+        this.relationBlacklistRepository = blacklistRepository;
+        this.inboxRepository = inboxRepository;
+        this.dictItemRepository = dictItemRepository;
         this.idGen = idGen;
         queryFactory = new JPAQueryFactory(em);
+        this.base64Decoder = Base64.getDecoder();
     }
 
     @Transactional
@@ -57,7 +68,7 @@ public class UserService {
         user.fromProto(req);
         //------------ set password
         if (req.hasPassword())
-            user.setPasswordHash(BCrypt.hashpw(req.getPassword().getValue(), BCrypt.gensalt()));
+            user.setPasswordHash(BCrypt.hashpw(new String(base64Decoder.decode(req.getPassword().getValue())), BCrypt.gensalt()));
         user.setId(idGen.nextId());
         logger.info("new user saving to db with id: {}", user.getId());
         UserOrgs userOrgs = new UserOrgs(idGen.nextId(), user.getId(), 1, 1);
@@ -136,7 +147,7 @@ public class UserService {
 
         if (dbUser.getStatus() != CoreCommon.EntityStatus.ENTITY_STATUS_NORMAL_VALUE)
             throw GrpcStatusException.GrpcInvalidArgException("INVALID_ARG:inactivated");
-        if (req.getId() == 0 && req.hasPassword() && !BCrypt.checkpw(req.getPassword().getValue(), dbUser.getPasswordHash()))
+        if (req.getId() == 0 && req.hasPassword() && !BCrypt.checkpw(new String(this.base64Decoder.decode(req.getPassword().getValue())), dbUser.getPasswordHash()))
             throw GrpcStatusException.GrpcInvalidArgException("INVALID_PASSWORD");
         resp.setUser(dbUser.toProto());
         List<UserOrgs> userOrgsList;
@@ -190,7 +201,7 @@ public class UserService {
 
         long page = request.getPagination().getIdx();
         long size = request.getPagination().getSize();
-        if (size <= 0) size = 20;
+        if (size <= 0) size = Constants.DEFAULT_PAGINATION_SIZE;
 
         QueryResults<User> qRes;
         if (expr != null) {
@@ -221,15 +232,16 @@ public class UserService {
             case UPDATE_USER_TYPE_EMAIL:
                 user = userRepository.findOneByEmail(request.getUser().getEmail().getValue());
                 break;
-                default:
-                    user = null;
+            default:
+                user = null;
+                break;
         }
         if (user == null || !user.isPresent()) throw GrpcStatusException.GrpcNotFoundException();
         User dbUser = user.get();
         dbUser.fromProto(request.getUser());
         //------------ set password
         if (request.getUser().hasPassword())
-            dbUser.setPasswordHash(BCrypt.hashpw(request.getUser().getPassword().getValue(), BCrypt.gensalt()));
+            dbUser.setPasswordHash(BCrypt.hashpw(new String(base64Decoder.decode(request.getUser().getPassword().getValue())), BCrypt.gensalt()));
         userRepository.save(dbUser);
     }
 
@@ -244,7 +256,7 @@ public class UserService {
         if (request.getNamesCount() > 0) exp = qUser.name.in(request.getNamesList()).and(exp);
 
         long size = request.getPagination().getSize();
-        if (size <= 0) size = 20;
+        if (size <= 0) size = Constants.DEFAULT_PAGINATION_SIZE;
         QueryResults<User> res =queryFactory.selectFrom(qUser)
                 .where(exp).offset(request.getPagination().getIdx()).limit(size).fetchResults();
 
@@ -305,7 +317,7 @@ public class UserService {
         QueryResults<Organization> orgs;
         CoreCommon.Pagination pagination = request.getPagination();
         long limit = pagination.getSize();
-        if (limit <= 0) limit = 20;
+        if (limit <= 0) limit = Constants.DEFAULT_PAGINATION_SIZE;
         switch (pagination.getSort()) {
             case SORT_TYPE_TIME_DESC:
             case SORT_TYPE_ID_DESC:
@@ -361,7 +373,7 @@ public class UserService {
         QueryResults<Department> results;
         CoreCommon.Pagination pagination = request.getPagination();
         long limit = pagination.getSize();
-        if (limit <= 0) limit = 20;
+        if (limit <= 0) limit = Constants.DEFAULT_PAGINATION_SIZE;
         switch (pagination.getSort()) {
             case SORT_TYPE_ID_DESC:
             case SORT_TYPE_TIME_DESC:
@@ -382,7 +394,9 @@ public class UserService {
     public void updateMessages(DalUser.MessagesReq request) {
         Map<Long, CoreCommon.Message> msgMap = new HashMap<>();
         List<Message> messagesToSave = new ArrayList<>();
+        List<Inbox> inboxToSave = new ArrayList<>();
         request.getDataList().forEach(x -> {
+            if (x.getTo() == 0L) return;
             if (x.getId() == 0L) {
                 Message message = new Message();
                 message.setId(idGen.nextId());
@@ -390,6 +404,12 @@ public class UserService {
                 if (message.getUserId() == 0L) message.setUserId(request.getUserId());
                 if (message.getOrgId() == 0L) message.setOrgId(request.getOrgId());
                 messagesToSave.add(message);
+                Inbox inbox = new Inbox();
+                inbox.setId(idGen.nextId());
+                inbox.setUserId(x.getTo());
+                inbox.setMsgId(message.getId());
+                inbox.setStatus(CoreCommon.EntityStatus.ENTITY_STATUS_INACTIVATED_VALUE);
+                inboxToSave.add(inbox);
             } else {
                 msgMap.put(x.getId(), x);
             }
@@ -403,36 +423,68 @@ public class UserService {
             });
         }
         messageRepository.saveAll(messagesToSave);
+        inboxRepository.saveAll(inboxToSave);
     }
+
     public CoreCommon.MessageResp.Builder readMessages(DalUser.ReadMessagesReq request) {
-        CoreCommon.Message msgReq = request.getMessage();
-        QMessage qMessage = QMessage.message;
+        CoreCommon.MessageResp.Builder builder = CoreCommon.MessageResp.newBuilder();
+        QMessage qMsg = QMessage.message;
+        QInbox qIn = QInbox.inbox;
+        long size = request.getPagination().getSize();
+        if (size <= 0) size = Constants.DEFAULT_PAGINATION_SIZE;
+        BooleanExpression qe;
+        // ===== msg type
+        if (request.getType() == CoreCommon.MessageType.MESSAGE_TYPE_NULL)
+            qe = qMsg.type.eq(CoreCommon.MessageType.MESSAGE_TYPE_USER_VALUE);
+        else
+            qe = qMsg.type.eq(request.getTypeValue());
+        // ===== receive type
+        if (request.getReceiveType() == CoreCommon.ReceiveType.RECEIVE_TYPE_NULL)
+            qe = qMsg.receiveType.eq(CoreCommon.ReceiveType.RECEIVE_TYPE_SITE_VALUE).and(qe);
+        else
+            qe = qMsg.receiveType.eq(request.getReceiveTypeValue()).and(qe);
 
-        BooleanExpression queryExpressions = qMessage.userId.eq(request.getUserId());
-        if (msgReq.getType() != CoreCommon.MessageType.MESSAGE_TYPE_NULL)
-            queryExpressions = queryExpressions.and(qMessage.type.eq(msgReq.getTypeValue()));
-        if (msgReq.getReceiveType() != CoreCommon.ReceiveType.RECEIVE_TYPE_NULL)
-            queryExpressions = queryExpressions.and(qMessage.receiveType.eq(msgReq.getReceiveTypeValue()));
-        if (msgReq.getTo() != 0L)
-            queryExpressions = queryExpressions.and(qMessage.sendTo.eq(msgReq.getTo()));
-        if (msgReq.getUpdatedAt()  != 0L)
-            queryExpressions = queryExpressions.and(qMessage.updatedAt.lt(msgReq.getUpdatedAt()));
-        if (msgReq.hasTitle())
-            queryExpressions = queryExpressions.and(qMessage.title.like(msgReq.getTitle().getValue() + "%"));
-        if (msgReq.getStatus() != CoreCommon.EntityStatus.ENTITY_STATUS_NULL)
-            queryExpressions = queryExpressions.and(qMessage.status.eq(msgReq.getStatusValue()));
-        long limit = request.getPagination().getSize();
-        if (limit <= 0) limit = 20;
-        Page<Message> msgPage = messageRepository.findAll(queryExpressions, PageRequest.of((int)request.getPagination().getIdx(), (int)limit));
-        CoreCommon.MessageResp.Builder respBuilder = CoreCommon.MessageResp.newBuilder();
+        if (!request.getTitle().equals(""))
+            qe = qMsg.title.startsWith(request.getTitle()).and(qe);
+        if (!request.getContent().equals(""))
+            qe = qMsg.content.startsWith(request.getContent()).and(qe);
 
-        CoreCommon.Pagination.Builder pagination = CoreCommon.Pagination.newBuilder();
-        respBuilder.addAllData(msgPage.getContent().stream().map(Message::toProto).collect(Collectors.toList()));
-        pagination.setTotal(msgPage.getTotalElements());
-        pagination.setIdx(msgPage.getNumber());
-        pagination.setSize(msgPage.getSize());
-        respBuilder.setPagination(pagination);
-        return respBuilder;
+        if (request.getUserId() == request.getToUserId()) {
+            qe = qIn.userId.eq(request.getToUserId()).and(qe);
+            if (request.getStatus() != CoreCommon.EntityStatus.ENTITY_STATUS_NULL)
+                qe = qIn.status.eq(request.getStatusValue()).and(qe);
+            QueryResults<Tuple> results = queryFactory.select(qIn, qMsg).from(qIn).leftJoin(qMsg).on(qMsg.id.eq(qIn.msgId))
+                    .where(qe).offset(request.getPagination().getIdx()).limit(size).fetchResults();
+            results.getResults().forEach(x -> {
+                Message msg = x.get(qMsg);
+                Inbox inbox = x.get(qIn);
+                if (msg == null || inbox == null) return;
+                CoreCommon.Message.Builder msgBuilder = msg.toProtoBuilder();
+                msgBuilder.setStatusValue(inbox.getStatus());
+                builder.addData(msgBuilder.build());
+            });
+            builder.setPagination(CommonUtils.buildPagination(results.getOffset(), results.getOffset(), results.getTotal()));
+        } else {
+            qe = qMsg.userId.eq(request.getFromUserId())
+                    .and(qMsg.status.eq(CoreCommon.EntityStatus.ENTITY_STATUS_NORMAL_VALUE)).and(qe);
+            if (request.getToUserId() != 0L) qe = qMsg.sendTo.eq(request.getToUserId()).and(qe);
+            QueryResults<Message> results = queryFactory.selectFrom(qMsg)
+                    .where(qe).offset(request.getPagination().getIdx()).limit(size).fetchResults();
+            builder.addAllData(results.getResults().stream().map(Message::toProto).collect(Collectors.toList()));
+            builder.setPagination(CommonUtils.buildPagination(results.getOffset(), results.getOffset(), results.getTotal()));
+        }
+        return builder;
+    }
+
+    @Transactional
+    public void updateInbox(DalUser.UpdateInboxReq request) {
+        List<Inbox> items = inboxRepository.findAllById(request.getIdsList());
+        items.forEach(x -> x.setStatus(request.getStatusValue()));
+        inboxRepository.saveAll(items);
+    }
+    @Transactional
+    public void deleteInbox(DalUser.UpdateInboxReq request) {
+        inboxRepository.deleteByIdIn(request.getIdsList());
     }
     @Transactional
     public void updateRelations(DalUser.UpdateRelationsReq request) {
@@ -483,7 +535,7 @@ public class UserService {
     public CoreCommon.PartnersResp.Builder readPartners(DalUser.ReadPartnersReq request) {
         CoreCommon.PartnersResp.Builder builder = CoreCommon.PartnersResp.newBuilder();
         long size = request.getPagination().getSize();
-        if (size == 0L) size = 20;
+        if (size == 0L) size = Constants.DEFAULT_PAGINATION_SIZE;
 
         QRelation qRelation = QRelation.relation;
         QOrganization qOrganization = QOrganization.organization;
@@ -595,5 +647,155 @@ public class UserService {
         List<UserOrgs> res = queryFactory.selectFrom(qUserOrgs).where(query).fetch();
         builder.addAllData(res.stream().map(UserOrgs::toProto).collect(Collectors.toList()));
         return builder;
+    }
+
+    @Transactional
+    public void createSimpleRelation(DalUser.SimpleRelationReq request) {
+        switch (request.getType()) {
+            case RELATION_SIMPLE_USER_VISIT: {
+                RelationVisit item = new RelationVisit();
+                item.setId(idGen.nextId());
+                item.setUserId(request.getQueryUserId());
+                item.setToUserId(request.getToId());
+                relationVisitRepository.save(item);
+            }
+            break;
+            case RELATION_SIMPLE_USER_FOLLOW: {
+                RelationFollow item = new RelationFollow();
+                item.setId(idGen.nextId());
+                item.setUserId(request.getQueryUserId());
+                item.setToUserId(request.getToId());
+                relationFollowRepository.save(item);
+            }
+            break;
+            case RELATION_SIMPLE_USER_BLACKLIST: {
+                RelationBlacklist item = new RelationBlacklist();
+                item.setId(idGen.nextId());
+                item.setUserId(request.getQueryUserId());
+                item.setBlockedUserId(request.getToId());
+                relationBlacklistRepository.save(item);
+            }
+            break;
+        }
+    }
+
+    @Transactional
+    public void deleteSimpleRelation(DalUser.SimpleRelationReq request) {
+        switch (request.getType()) {
+            case RELATION_SIMPLE_USER_VISIT: {
+                relationVisitRepository.deleteByUserIdAndToUserId(request.getQueryUserId(), request.getToId());
+            }
+            break;
+            case RELATION_SIMPLE_USER_FOLLOW: {
+                relationFollowRepository.deleteByUserIdAndToUserId(request.getQueryUserId(), request.getToId());
+            }
+            break;
+            case RELATION_SIMPLE_USER_BLACKLIST: {
+                relationBlacklistRepository.deleteByUserIdAndBlockedUserId(request.getQueryUserId(), request.getToId());
+            }
+            break;
+        }
+    }
+
+    public CoreCommon.SimpleRelationList readSimpleRelations(DalUser.SimpleRelationReq request) {
+        CoreCommon.SimpleRelationList.Builder builder = CoreCommon.SimpleRelationList.newBuilder();
+        long size = request.getPagination().getSize();
+        if (size <= 0) size = Constants.DEFAULT_PAGINATION_SIZE;
+        switch (request.getType()) {
+            case RELATION_SIMPLE_USER_VISIT: {
+                QRelationVisit qRe = QRelationVisit.relationVisit;
+                BooleanExpression be = null;
+                if (request.getUserId() != 0L) be = qRe.userId.eq(request.getUserId());
+                if (request.getToId() != 0L) be = qRe.toUserId.eq(request.getToId()).and(be);
+                QueryResults<RelationVisit> qRes = queryFactory.selectFrom(qRe).where(be)
+                        .offset(request.getPagination().getIdx()).limit(size)
+                        .orderBy(qRe.updatedAt.desc()).fetchResults();
+                builder.addAllData(qRes.getResults().stream().map(RelationVisit::toProto).collect(Collectors.toList()));
+                builder.setPagination(CommonUtils.buildPagination(qRes.getOffset(), qRes.getLimit(), qRes.getTotal()));
+            }
+            break;
+            case RELATION_SIMPLE_USER_FOLLOW: {
+                QRelationFollow qRe = QRelationFollow.relationFollow;
+                BooleanExpression be = null;
+                if (request.getUserId() != 0L) be = qRe.userId.eq(request.getUserId());
+                if (request.getToId() != 0L) be = qRe.toUserId.eq(request.getToId()).and(be);
+                QueryResults<RelationFollow> qRes = queryFactory.selectFrom(qRe).where(be)
+                        .offset(request.getPagination().getIdx()).limit(size)
+                        .orderBy(qRe.updatedAt.desc()).fetchResults();
+                builder.addAllData(qRes.getResults().stream().map(RelationFollow::toProto).collect(Collectors.toList()));
+                builder.setPagination(CommonUtils.buildPagination(qRes.getOffset(), qRes.getLimit(), qRes.getTotal()));
+            }
+            break;
+            case RELATION_SIMPLE_USER_BLACKLIST: {
+                QRelationBlacklist qRe = QRelationBlacklist.relationBlacklist;
+                BooleanExpression be = null;
+                if (request.getUserId() != 0L) be = qRe.userId.eq(request.getUserId());
+                if (request.getToId() != 0L) be = qRe.blockedUserId.eq(request.getToId()).and(be);
+                QueryResults<RelationBlacklist> qRes = queryFactory.selectFrom(qRe).where(be)
+                        .offset(request.getPagination().getIdx()).limit(size)
+                        .orderBy(qRe.updatedAt.desc()).fetchResults();
+                builder.addAllData(qRes.getResults().stream().map(RelationBlacklist::toProto).collect(Collectors.toList()));
+                builder.setPagination(CommonUtils.buildPagination(qRes.getOffset(), qRes.getLimit(), qRes.getTotal()));
+            }
+            break;
+        }
+        return builder.build();
+    }
+
+    @Transactional
+    public void updateDictItems(DalUser.DictItemsReq request) {
+        if (request.getDataCount() > 0) {
+            List<DictItem> itemsToSave = new ArrayList<>();
+            Map<Long, CoreCommon.DictItemEdit> itemMap = new HashMap<>();
+            for(CoreCommon.DictItemEdit item : request.getDataList()) {
+                if (item.getId() != 0L)
+                    itemMap.put(item.getId(), item);
+                else {
+                    DictItem dItem = new DictItem();
+                    dItem.fromProto(item);
+                    dItem.setId(idGen.nextId());
+                    itemsToSave.add(dItem);
+                }
+            }
+            if (itemMap.size() > 0) {
+                List<DictItem> dictItems = dictItemRepository.findAllById(itemMap.keySet());
+                dictItems.forEach(x -> {
+                    x.fromProto(itemMap.get(x.getId()));
+                    itemsToSave.add(x);
+                });
+            }
+            dictItemRepository.saveAll(itemsToSave);
+        }
+    }
+
+    public CoreCommon.DictItemList readDictItems(DalUser.ReadDictItemsReq request) {
+        CoreCommon.DictItemList.Builder builder = CoreCommon.DictItemList.newBuilder();
+        QDictItem qDict = QDictItem.dictItem;
+        List<DictItem> dictItems;
+        long size = request.getPagination().getSize();
+        if (size <= 0) size = Constants.DEFAULT_PAGINATION_SIZE;
+
+        if (request.getIdsCount() > 0) {
+            dictItems = queryFactory.selectFrom(qDict).where(qDict.id.in(request.getIdsList())).fetch();
+        } else if (request.getPid() != 0) {
+            QueryResults<DictItem> qR = queryFactory.selectFrom(qDict)
+                    .where(qDict.pid.eq(request.getPid()))
+                    .offset(request.getPagination().getIdx()).limit(size).fetchResults();
+            dictItems = qR.getResults();
+            builder.setPagination(CommonUtils.buildPagination(qR.getOffset(), qR.getLimit(), qR.getTotal()));
+        } else {
+            QueryResults<DictItem> qR = queryFactory.selectFrom(qDict)
+                    .where(qDict.pid.eq(request.getPid()))
+                    .offset(request.getPagination().getIdx()).limit(size).fetchResults();
+            dictItems = qR.getResults();
+            builder.setPagination(CommonUtils.buildPagination(qR.getOffset(), qR.getLimit(), qR.getTotal()));
+        }
+        builder.addAllData(dictItems.stream().map(DictItem::toProto).collect(Collectors.toList()));
+        return builder.build();
+    }
+
+    @Transactional
+    public void deleteDictItems(CoreCommon.AuthorizedIdsReq request) {
+        dictItemRepository.deleteByIdIn(request.getIdsList());
     }
 }

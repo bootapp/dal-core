@@ -1,0 +1,51 @@
+databaseChangeLog:
+  - changeSet:
+      id: dict-items-table-create
+      author: wangh09
+      changes:
+        - createTable:
+            tableName: dict_items
+            columns:
+              - column:
+                  name: id
+                  type: BigInt
+                  constraints:
+                    - primaryKey: true
+                    - nullable: false
+                    - updatable: false
+              - column:
+                  name: pid
+                  type: BigInt
+              - column:
+                  name: seq
+                  type: BigInt
+              - column:
+                  name: name
+                  type: VARCHAR(200)
+              - column:
+                  name: code
+                  type: VARCHAR(20)
+              - column:
+                  name: description
+                  type: VARCHAR(200)
+              - column:
+                  name: content
+                  type: VARCHAR(200)
+              - column:
+                  name: remark
+                  type: VARCHAR(200)
+              - column:
+                  name: status
+                  type: Int
+              - column:
+                  name: created_at
+                  type: BigInt
+              - column:
+                  name: updated_at
+                  type: BigInt
+              - column:
+                  name: created_by
+                  type: BigInt
+              - column:
+                  name: last_updated_by
+                  type: BigInt

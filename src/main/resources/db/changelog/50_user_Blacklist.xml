@@ -6,37 +6,31 @@
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.6.xsd
                         http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
 
-    <changeSet id="inbox-table-create" author="wangh09">
-        <createTable tableName="inbox">
+    <changeSet id="20191223104520-1" author="wangh09">
+        <createTable tableName="relation_blacklist">
             <column name="id" type="bigint">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
             <column name="user_id" type="bigint">
                 <constraints nullable="true" />
             </column>
-            <column name="msg_id" type="bigint">
-                <constraints nullable="true" />
-            </column>
-            <column name="status" type="integer">
-                <constraints nullable="true" />
-            </column>
-            <column name="created_at" type="bigint">
+            <column name="blocked_user_id" type="bigint">
                 <constraints nullable="true" />
             </column>
             <column name="updated_at" type="bigint">
                 <constraints nullable="true" />
             </column>
-            <column name="created_by" type="bigint">
-                <constraints nullable="true" />
-            </column>
-            <column name="last_updated_by" type="bigint">
-                <constraints nullable="true" />
-            </column>
         </createTable>
-        <createIndex indexName="idx_user"
+        <addUniqueConstraint columnNames="user_id, blocked_user_id"
+                             constraintName="user_blocked_con"
+                             tableName="relation_blacklist"
+        />
+        <createIndex indexName="idx_user_blocked"
                      schemaName="core"
-                     tableName="inbox">
+                     tableName="relation_blacklist">
             <column name="user_id"/>
+            <column name="blocked_user_id"/>
         </createIndex>
     </changeSet>
+
 </databaseChangeLog>

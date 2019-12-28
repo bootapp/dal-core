@@ -50,7 +50,11 @@
             <column name="last_updated_by" type="bigint">
                 <constraints nullable="true" />
             </column>
-            <!-- jhipster-needle-liquibase-add-column - JHipster will add columns here, do not remove-->
         </createTable>
+        <createIndex indexName="idx_user"
+                     schemaName="core"
+                     tableName="messages">
+            <column name="user_id"/>
+        </createIndex>
     </changeSet>
 </databaseChangeLog>

@@ -17,4 +17,16 @@ public class Inbox extends AbstractEntity {
 
     @Column(name = "msg_id")
     private long msgId;
+
+    public void setId(long id) {
+        this.id = id;
+    }
+
+    public void setUserId(long userId) {
+        this.userId = userId;
+    }
+
+    public void setMsgId(long msgId) {
+        this.msgId = msgId;
+    }
 }
