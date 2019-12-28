@@ -1,3 +1,6 @@
-id@name@authorities@remark@status@create_at@update_at
-1@默认组@G_NULL@@1@0@0
-2@管理员组@G_NULL;G_SYS@@1@0@0
+id@name@authorities@remark@status@created_at@updated_at@created_by@last_updated_by
+1@默认组@500@@1@0@0@0@0
+2@货主企业@600;601;602;603;604;605;606@@1@0@0@0@0
+3@供货商企业@700;701;702;703@@1@0@0@0@0
+4@物流商企业@800;801;802;803@@1@0@0@0@0
+5@系统管理员组@500;550@@1@0@0@0@0

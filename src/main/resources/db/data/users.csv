@@ -1,3 +1,6 @@
-id#username#phone#email#password_hash#name#status#create_at#update_at
-1000#admin#+86-16611116666#user@y-hs.com#$2a$10$L9PK9jQCMMHgBMO1J6PCne2RGfQm8IMSQayo4BC6T7j25C73D580a#管理员#1#0#0
-1001#user#+86-18811118888#admin@y-hs.com#$2a$10$L9PK9jQCMMHgBMO1J6PCne2RGfQm8IMSQayo4BC6T7j25C73D580a#用户#1#0#0
+id#username#phone#email#password_hash#name#status#created_at#updated_at#created_by#last_updated_by
+1000#admin#+86-16611116666#user@y-hs.com#$2a$10$L9PK9jQCMMHgBMO1J6PCne2RGfQm8IMSQayo4BC6T7j25C73D580a#管理员#1#0#0#0#0
+1001#user#+86-18811118888#admin@y-hs.com#$2a$10$L9PK9jQCMMHgBMO1J6PCne2RGfQm8IMSQayo4BC6T7j25C73D580a#用户#1#0#0#0#0
+1002#supplier#+86-18811118889#suppl@y-hs.com#$2a$10$L9PK9jQCMMHgBMO1J6PCne2RGfQm8IMSQayo4BC6T7j25C73D580a#供货商#1#0#0#0#0
+1003#logistics#+86-18811118890#logistics@y-hs.com#$2a$10$L9PK9jQCMMHgBMO1J6PCne2RGfQm8IMSQayo4BC6T7j25C73D580a#物流商#1#0#0#0#0
+1004#owner#+86-18811118891#owner@y-hs.com#$2a$10$L9PK9jQCMMHgBMO1J6PCne2RGfQm8IMSQayo4BC6T7j25C73D580a#货主#1#0#0#0#0
