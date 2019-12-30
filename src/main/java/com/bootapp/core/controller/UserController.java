@@ -1,9 +1,9 @@
 package com.bootapp.core.controller;
 
 import com.bootapp.core.domain.*;
-import com.bootapp.core.grpc.CoreCommon;
-import com.bootapp.core.grpc.DalUser;
-import com.bootapp.core.grpc.DalUserServiceGrpc;
+import com.bootapp.grpc.core.CoreCommon;
+import com.bootapp.grpc.core.DalUser;
+import com.bootapp.grpc.core.DalUserServiceGrpc;
 import com.bootapp.core.service.UserService;
 import com.bootapp.core.utils.CommonUtils;
 import com.bootapp.core.utils.grpc.GrpcStatusException;
@@ -168,7 +168,7 @@ public class UserController extends DalUserServiceGrpc.DalUserServiceImplBase {
             responseObserver.onCompleted();
         } catch (RuntimeException e) {
             logger.error(e.toString());
-            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+            responseObserver.onError(e);
         }
     }
 
@@ -184,7 +184,7 @@ public class UserController extends DalUserServiceGrpc.DalUserServiceImplBase {
             responseObserver.onCompleted();
         } catch (RuntimeException e) {
             logger.error(e.toString());
-            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+            responseObserver.onError(e);
         }
     }
 
@@ -195,7 +195,7 @@ public class UserController extends DalUserServiceGrpc.DalUserServiceImplBase {
             responseObserver.onCompleted();
         } catch (RuntimeException e) {
             logger.error(e.toString());
-            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+            responseObserver.onError(e);
         }
     }
 
@@ -207,7 +207,7 @@ public class UserController extends DalUserServiceGrpc.DalUserServiceImplBase {
             responseObserver.onCompleted();
         } catch (Exception e) {
             logger.error(e.toString());
-            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+            responseObserver.onError(e);
         }
     }
 
@@ -218,7 +218,7 @@ public class UserController extends DalUserServiceGrpc.DalUserServiceImplBase {
             responseObserver.onCompleted();
         } catch (Exception e) {
             logger.error(e.toString());
-            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+            responseObserver.onError(e);
         }
     }
 

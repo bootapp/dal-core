@@ -1,8 +1,8 @@
 package com.bootapp.core.controller;
 
-import com.bootapp.core.grpc.CoreCommon;
-import com.bootapp.core.grpc.DalAuth;
-import com.bootapp.core.grpc.DalAuthServiceGrpc;
+import com.bootapp.grpc.core.CoreCommon;
+import com.bootapp.grpc.core.DalAuth;
+import com.bootapp.grpc.core.DalAuthServiceGrpc;
 import com.bootapp.core.service.AuthService;
 import com.bootapp.core.utils.grpc.GrpcStatusException;
 import io.grpc.stub.StreamObserver;

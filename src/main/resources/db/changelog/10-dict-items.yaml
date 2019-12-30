@@ -21,19 +21,19 @@ databaseChangeLog:
                   type: BigInt
               - column:
                   name: name
-                  type: VARCHAR(200)
+                  type: VARCHAR(50)
               - column:
                   name: code
                   type: VARCHAR(20)
               - column:
                   name: description
-                  type: VARCHAR(200)
+                  type: VARCHAR(100)
               - column:
                   name: content
                   type: VARCHAR(200)
               - column:
                   name: remark
-                  type: VARCHAR(200)
+                  type: VARCHAR(50)
               - column:
                   name: status
                   type: Int
@@ -49,3 +49,47 @@ databaseChangeLog:
               - column:
                   name: last_updated_by
                   type: BigInt
+        - loadData:
+            file: "db/data/dictionary.csv"
+            separator: '@'
+            tableName: dict_items
+            columns:
+              - column:
+                  name: id
+                  type: numeric
+              - column:
+                  name: pid
+                  type: numeric
+              - column:
+                  name: seq
+                  type: numeric
+              - column:
+                  name: name
+                  type: string
+              - column:
+                  name: code
+                  type: string
+              - column:
+                  name: description
+                  type: string
+              - column:
+                  name: content
+                  type: string
+              - column:
+                  name: remark
+                  type: string
+              - column:
+                  name: status
+                  type: numeric
+              - column:
+                  name: created_at
+                  type: numeric
+              - column:
+                  name: updated_at
+                  type: numeric
+              - column:
+                  name: created_by
+                  type: numeric
+              - column:
+                  name: last_updated_by
+                  type: numeric

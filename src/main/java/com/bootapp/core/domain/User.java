@@ -5,7 +5,7 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
-import com.bootapp.core.grpc.CoreCommon;
+import com.bootapp.grpc.core.CoreCommon;
 import com.google.protobuf.StringValue;
 
 @Entity

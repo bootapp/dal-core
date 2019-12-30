@@ -1,6 +1,6 @@
 package com.bootapp.core.domain;
 
-import com.bootapp.core.grpc.CoreCommon;
+import com.bootapp.grpc.core.CoreCommon;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;

@@ -1,6 +1,6 @@
 package com.bootapp.core.domain;
 
-import com.bootapp.core.grpc.CoreCommon;
+import com.bootapp.grpc.core.CoreCommon;
 
 import javax.persistence.*;
 
@@ -44,6 +44,7 @@ public class RelationBlacklist {
         this.blockedUserId = blockedUserId;
     }
 
+    @PrePersist
     @PreUpdate
     void preUpdate() {
         this.updatedAt = System.currentTimeMillis();

@@ -1,6 +1,6 @@
 package com.bootapp.core.domain;
 
-import com.bootapp.core.grpc.CoreCommon;
+import com.bootapp.grpc.core.CoreCommon;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -15,7 +15,7 @@ public class DictItem extends AbstractEntity {
     @Column
     long pid;
     @Column
-    long seq;
+    long seq = 999;
     @Column
     String name;
     @Column
@@ -47,16 +47,17 @@ public class DictItem extends AbstractEntity {
     public CoreCommon.DictItem toProto() {
         return toProtoBuilder().build();
     }
+
     public CoreCommon.DictItem.Builder toProtoBuilder() {
         CoreCommon.DictItem.Builder builder = CoreCommon.DictItem.newBuilder();
         builder.setId(id);
         builder.setPid(pid);
         builder.setSeq(seq);
-        builder.setName(name);
-        builder.setCode(code);
-        builder.setDescription(description);
-        builder.setContent(content);
-        builder.setRemark(remark);
+        if (name != null) builder.setName(name);
+        if (code != null) builder.setCode(code);
+        if (description != null) builder.setDescription(description);
+        if (content != null) builder.setContent(content);
+        if (remark != null) builder.setRemark(remark);
         builder.setUpdatedAt(updatedAt);
         builder.setCreatedAt(createdAt);
         return builder;

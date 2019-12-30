@@ -2,8 +2,8 @@ package com.bootapp.core.controller;
 
 import com.bootapp.core.domain.Authority;
 import com.bootapp.core.domain.AuthorityGroup;
-import com.bootapp.core.grpc.DalSysAuth;
-import com.bootapp.core.grpc.DalSysAuthServiceGrpc;
+import com.bootapp.grpc.core.DalSysAuth;
+import com.bootapp.grpc.core.DalSysAuthServiceGrpc;
 import com.bootapp.core.repository.AuthorityGroupRepository;
 import com.bootapp.core.repository.AuthorityRepository;
 import com.bootapp.core.utils.grpc.GrpcStatusException;

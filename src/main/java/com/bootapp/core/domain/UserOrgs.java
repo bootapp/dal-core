@@ -1,6 +1,6 @@
 package com.bootapp.core.domain;
 
-import com.bootapp.core.grpc.DalUser;
+import com.bootapp.grpc.core.DalUser;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;

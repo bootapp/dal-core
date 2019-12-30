@@ -2,8 +2,8 @@ package com.bootapp.core.service;
 
 import com.bootapp.core.config.Constants;
 import com.bootapp.core.domain.*;
-import com.bootapp.core.grpc.CoreCommon;
-import com.bootapp.core.grpc.DalUser;
+import com.bootapp.grpc.core.CoreCommon;
+import com.bootapp.grpc.core.DalUser;
 import com.bootapp.core.repository.*;
 import com.bootapp.core.utils.CommonUtils;
 import com.bootapp.core.utils.grpc.GrpcStatusException;
@@ -39,7 +39,6 @@ public class UserService {
     private final DictItemRepository dictItemRepository;
     private final IDGenerator idGen;
     private JPAQueryFactory queryFactory;
-    private Base64.Decoder base64Decoder;
     private Logger logger = LoggerFactory.getLogger(this.getClass());
 
     public UserService(UserRepository userRepository, UserOrgsRepository userOrgsRepository, RelationsRepository relationsRepository, OrganizationRepository organizationRepository, DepartmentRepository departmentRepository, MessageRepository messageRepository, RoleOrgRepository roleOrgRepository, RoleUserRepository roleUserRepository, RelationVisitRepository relationVisitRepository, RelationFollowRepository relationFollowRepository, RelationBlacklistRepository blacklistRepository, InboxRepository inboxRepository, DictItemRepository dictItemRepository, IDGenerator idGen, EntityManager em) {
@@ -58,7 +57,6 @@ public class UserService {
         this.dictItemRepository = dictItemRepository;
         this.idGen = idGen;
         queryFactory = new JPAQueryFactory(em);
-        this.base64Decoder = Base64.getDecoder();
     }
 
     @Transactional
@@ -68,7 +66,7 @@ public class UserService {
         user.fromProto(req);
         //------------ set password
         if (req.hasPassword())
-            user.setPasswordHash(BCrypt.hashpw(new String(base64Decoder.decode(req.getPassword().getValue())), BCrypt.gensalt()));
+            user.setPasswordHash(BCrypt.hashpw(req.getPassword().getValue(), BCrypt.gensalt()));
         user.setId(idGen.nextId());
         logger.info("new user saving to db with id: {}", user.getId());
         UserOrgs userOrgs = new UserOrgs(idGen.nextId(), user.getId(), 1, 1);
@@ -147,7 +145,7 @@ public class UserService {
 
         if (dbUser.getStatus() != CoreCommon.EntityStatus.ENTITY_STATUS_NORMAL_VALUE)
             throw GrpcStatusException.GrpcInvalidArgException("INVALID_ARG:inactivated");
-        if (req.getId() == 0 && req.hasPassword() && !BCrypt.checkpw(new String(this.base64Decoder.decode(req.getPassword().getValue())), dbUser.getPasswordHash()))
+        if (req.getId() == 0 && req.hasPassword() && !BCrypt.checkpw(req.getPassword().getValue(), dbUser.getPasswordHash()))
             throw GrpcStatusException.GrpcInvalidArgException("INVALID_PASSWORD");
         resp.setUser(dbUser.toProto());
         List<UserOrgs> userOrgsList;
@@ -199,7 +197,6 @@ public class UserService {
         if (req.hasPhone()) expr = qUser.phone.like(req.getPhone().getValue() + "%").or(expr);
         if (req.getOrgId() != 0L) expr =  qUserOrgs.orgId.eq(req.getOrgId()).and(expr);
 
-        long page = request.getPagination().getIdx();
         long size = request.getPagination().getSize();
         if (size <= 0) size = Constants.DEFAULT_PAGINATION_SIZE;
 
@@ -207,9 +204,10 @@ public class UserService {
         if (expr != null) {
             qRes = queryFactory.select(qUser).from(qUser)
                     .innerJoin(qUserOrgs).on(qUserOrgs.userId.eq(qUser.id))
-                    .where(expr).offset(page).limit(size).fetchResults();
+                    .where(expr).offset(request.getPagination().getIdx()).limit(size).fetchResults();
         } else
-            qRes = queryFactory.select(qUser).from(qUser).offset(page).limit(size).fetchResults();
+            qRes = queryFactory.select(qUser).from(qUser)
+                    .offset(request.getPagination().getIdx()).limit(size).fetchResults();
 
         qRes.getResults().forEach(it -> resp.addData(it.toProto()));
         resp.setPagination(CoreCommon.Pagination.newBuilder()
@@ -241,7 +239,7 @@ public class UserService {
         dbUser.fromProto(request.getUser());
         //------------ set password
         if (request.getUser().hasPassword())
-            dbUser.setPasswordHash(BCrypt.hashpw(new String(base64Decoder.decode(request.getUser().getPassword().getValue())), BCrypt.gensalt()));
+            dbUser.setPasswordHash(BCrypt.hashpw(request.getUser().getPassword().getValue(), BCrypt.gensalt()));
         userRepository.save(dbUser);
     }
 

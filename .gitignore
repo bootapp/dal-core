@@ -6,4 +6,4 @@ app.jar
 .idea
 build
 out
-src/main/java/com/bootapp/core/grpc/*
+src/main/java/com/bootapp/grpc/*

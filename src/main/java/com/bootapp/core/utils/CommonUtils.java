@@ -1,6 +1,6 @@
 package com.bootapp.core.utils;
 
-import com.bootapp.core.grpc.CoreCommon;
+import com.bootapp.grpc.core.CoreCommon;
 
 public class CommonUtils {
     static public final double epsilon = 1e-10;
