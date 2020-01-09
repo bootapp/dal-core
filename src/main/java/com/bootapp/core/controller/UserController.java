@@ -62,7 +62,7 @@ public class UserController extends DalUserServiceGrpc.DalUserServiceImplBase {
         } catch (RuntimeException e) {
             e.printStackTrace();
             logger.error(e.getMessage());
-            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+            responseObserver.onError(e);
         }
     }
     @Override
@@ -77,7 +77,7 @@ public class UserController extends DalUserServiceGrpc.DalUserServiceImplBase {
         } catch (RuntimeException e) {
             e.printStackTrace();
             logger.error(e.getMessage());
-            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+            responseObserver.onError(e);
         }
     }
     @Override
@@ -173,6 +173,17 @@ public class UserController extends DalUserServiceGrpc.DalUserServiceImplBase {
     }
 
     @Override
+    public void readUserIds(CoreCommon.AuthorizedPaginationReq request, StreamObserver<DalUser.IdsResp> responseObserver) {
+        try {
+            responseObserver.onNext(userService.readUserIds(request));
+            responseObserver.onCompleted();
+        } catch (RuntimeException e) {
+            logger.error(e.toString());
+            responseObserver.onError(e);
+        }
+    }
+
+    @Override
     public void updateOrgs(DalUser.OrgsReq request, StreamObserver<CoreCommon.Empty> responseObserver) {
         try {
             if (request.getDataCount() <= 0) {
@@ -230,7 +241,7 @@ public class UserController extends DalUserServiceGrpc.DalUserServiceImplBase {
             responseObserver.onCompleted();
         } catch (Exception e) {
             logger.error(e.toString());
-            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+            responseObserver.onError(e);
         }
     }
 
@@ -247,7 +258,7 @@ public class UserController extends DalUserServiceGrpc.DalUserServiceImplBase {
 
         } catch (RuntimeException e) {
             logger.error(e.toString());
-            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+            responseObserver.onError(e);
         }
     }
 
@@ -259,50 +270,42 @@ public class UserController extends DalUserServiceGrpc.DalUserServiceImplBase {
 
         } catch (RuntimeException e) {
             logger.error(e.toString());
-            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+            responseObserver.onError(e);
         }
     }
 
     @Override
-    public void updateMessages(DalUser.MessagesReq request, StreamObserver<CoreCommon.Empty> responseObserver) {
+    public void updateMessage(DalUser.MessageReq request, StreamObserver<CoreCommon.Empty> responseObserver) {
         try {
-            if (request.getDataCount() <= 0) {
-                responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("INVALID_ARG:data"));
-                return;
-            }
-            userService.updateMessages(request);
+            userService.updateMessage(request);
             responseObserver.onNext(CoreCommon.Empty.getDefaultInstance());
             responseObserver.onCompleted();
         } catch (RuntimeException e) {
             logger.error(e.toString());
-            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+            responseObserver.onError(e);
         }
     }
 
     @Override
-    public void readMessages(DalUser.ReadMessagesReq request, StreamObserver<CoreCommon.MessageResp> responseObserver) {
+    public void readMessages(DalUser.ReadMessagesReq request, StreamObserver<CoreCommon.MessageList> responseObserver) {
         try {
-            if (request.getFromUserId() == 0L && request.getToUserId() == 0L)
-                responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("INVALID_ARG:from, to"));
-            else {
-                responseObserver.onNext(userService.readMessages(request).build());
-                responseObserver.onCompleted();
-            }
+            responseObserver.onNext(userService.readMessages(request));
+            responseObserver.onCompleted();
         } catch (RuntimeException e) {
             logger.error(e.toString());
-            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+            responseObserver.onError(e);
         }
     }
 
     @Override
-    public void updateInbox(DalUser.UpdateInboxReq request, StreamObserver<CoreCommon.Empty> responseObserver) {
+    public void createInbox(DalUser.CreateInboxReq request, StreamObserver<CoreCommon.Empty> responseObserver) {
         try {
-            userService.updateInbox(request);
+            userService.createInbox(request);
             responseObserver.onNext(CoreCommon.Empty.getDefaultInstance());
             responseObserver.onCompleted();
         } catch (RuntimeException e) {
             logger.error(e.toString());
-            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+            responseObserver.onError(e);
         }
     }
 
@@ -314,7 +317,30 @@ public class UserController extends DalUserServiceGrpc.DalUserServiceImplBase {
             responseObserver.onCompleted();
         } catch (RuntimeException e) {
             logger.error(e.toString());
-            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+            responseObserver.onError(e);
+        }
+    }
+
+    @Override
+    public void readInbox(DalUser.ReadInboxReq request, StreamObserver<CoreCommon.MessageList> responseObserver) {
+        try {
+            responseObserver.onNext(userService.readInbox(request));
+            responseObserver.onCompleted();
+        } catch (RuntimeException e) {
+            logger.error(e.toString());
+            responseObserver.onError(e);
+        }
+    }
+
+    @Override
+    public void updateInbox(DalUser.UpdateInboxReq request, StreamObserver<CoreCommon.Empty> responseObserver) {
+        try {
+            userService.updateInbox(request);
+            responseObserver.onNext(CoreCommon.Empty.getDefaultInstance());
+            responseObserver.onCompleted();
+        } catch (RuntimeException e) {
+            logger.error(e.toString());
+            responseObserver.onError(e);
         }
     }
 
@@ -326,7 +352,7 @@ public class UserController extends DalUserServiceGrpc.DalUserServiceImplBase {
             responseObserver.onCompleted();
         } catch (RuntimeException e) {
             logger.error(e.toString());
-            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+            responseObserver.onError(e);
         }
     }
 
@@ -338,7 +364,7 @@ public class UserController extends DalUserServiceGrpc.DalUserServiceImplBase {
             responseObserver.onCompleted();
         } catch (RuntimeException e) {
             logger.error(e.toString());
-            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+            responseObserver.onError(e);
         }
     }
 
@@ -356,7 +382,7 @@ public class UserController extends DalUserServiceGrpc.DalUserServiceImplBase {
             responseObserver.onCompleted();
         } catch (RuntimeException e) {
             logger.error(e.toString());
-            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+            responseObserver.onError(e);
         }
     }
 
@@ -367,7 +393,7 @@ public class UserController extends DalUserServiceGrpc.DalUserServiceImplBase {
             responseObserver.onCompleted();
         } catch (RuntimeException e) {
             logger.error(e.toString());
-            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+            responseObserver.onError(e);
         }
     }
 
@@ -378,46 +404,7 @@ public class UserController extends DalUserServiceGrpc.DalUserServiceImplBase {
             responseObserver.onCompleted();
         } catch (RuntimeException e) {
             logger.error(e.toString());
-            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
-        }
-    }
-
-    @Override
-    public void createSimpleRelation(DalUser.SimpleRelationReq request, StreamObserver<CoreCommon.Empty> responseObserver) {
-        try {
-            userService.createSimpleRelation(request);
-            responseObserver.onNext(CoreCommon.Empty.getDefaultInstance());
-            responseObserver.onCompleted();
-        } catch (RuntimeException e) {
-            logger.error(e.toString());
-            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
-        }
-    }
-
-    @Override
-    public void deleteSimpleRelation(DalUser.SimpleRelationReq request, StreamObserver<CoreCommon.Empty> responseObserver) {
-        try {
-            userService.deleteSimpleRelation(request);
-            responseObserver.onNext(CoreCommon.Empty.getDefaultInstance());
-            responseObserver.onCompleted();
-        } catch (RuntimeException e) {
-            logger.error(e.toString());
-            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
-        }
-    }
-
-    @Override
-    public void readSimpleRelations(DalUser.SimpleRelationReq request, StreamObserver<CoreCommon.SimpleRelationList> responseObserver) {
-        try {
-            if (request.getUserId() == 0L && request.getToId() == 0L) {
-                responseObserver.onError(GrpcStatusException.GrpcInvalidArgException("INVALID_ARG:userId, toUserId"));
-                return;
-            }
-            responseObserver.onNext(userService.readSimpleRelations(request));
-            responseObserver.onCompleted();
-        } catch (RuntimeException e) {
-            logger.error(e.toString());
-            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+            responseObserver.onError(e);
         }
     }
 
@@ -429,7 +416,7 @@ public class UserController extends DalUserServiceGrpc.DalUserServiceImplBase {
             responseObserver.onCompleted();
         } catch (RuntimeException e) {
             logger.error(e.toString());
-            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+            responseObserver.onError(e);
         }
     }
 
@@ -440,7 +427,7 @@ public class UserController extends DalUserServiceGrpc.DalUserServiceImplBase {
             responseObserver.onCompleted();
         } catch (RuntimeException e) {
             logger.error(e.toString());
-            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+            responseObserver.onError(e);
         }
     }
 
@@ -452,8 +439,30 @@ public class UserController extends DalUserServiceGrpc.DalUserServiceImplBase {
             responseObserver.onCompleted();
         } catch (RuntimeException e) {
             logger.error(e.toString());
-            responseObserver.onError(GrpcStatusException.GrpcInternalException(e));
+            responseObserver.onError(e);
         }
     }
 
+    @Override
+    public void updateFeedback(DalUser.FeedbackReq request, StreamObserver<CoreCommon.Empty> responseObserver) {
+        try {
+            userService.updateFeedback(request);
+            responseObserver.onNext(CoreCommon.Empty.getDefaultInstance());
+            responseObserver.onCompleted();
+        } catch (RuntimeException e) {
+            logger.error(e.toString());
+            responseObserver.onError(e);
+        }
+    }
+
+    @Override
+    public void readFeedback(DalUser.ReadFeedbackReq request, StreamObserver<CoreCommon.FeedbackList> responseObserver) {
+        try {
+            responseObserver.onNext(userService.readFeedback(request));
+            responseObserver.onCompleted();
+        } catch (RuntimeException e) {
+            logger.error(e.toString());
+            responseObserver.onError(e);
+        }
+    }
 }

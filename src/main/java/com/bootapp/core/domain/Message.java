@@ -37,10 +37,13 @@ public class Message extends AbstractEntity {
     @Column(name = "content")
     private String content;
 
-    @Column(name = "files")
-    private String files;
+    @Column(name = "file_urls")
+    private String fileUrls;
 
-    public void fromProto(CoreCommon.Message proto) {
+    @Column(name = "img_urls")
+    private String imgUrls;
+
+    public void fromProto(CoreCommon.MessageEdit proto) {
         if (proto.getType() != CoreCommon.MessageType.MESSAGE_TYPE_NULL)
             type = proto.getTypeValue();
         else type = CoreCommon.MessageType.MESSAGE_TYPE_USER_VALUE;
@@ -54,7 +57,8 @@ public class Message extends AbstractEntity {
         if (proto.getTo() != 0L) sendTo = proto.getTo();
         if (proto.hasTitle()) title = proto.getTitle().getValue();
         if (proto.hasContent()) content = proto.getContent().getValue();
-        if (proto.hasFiles()) files = proto.getFiles().getValue();
+        if (proto.hasFileUrls()) fileUrls = proto.getFileUrls().getValue();
+        if (proto.hasImgUrls()) imgUrls = proto.getImgUrls().getValue();
     }
 
     public CoreCommon.Message toProto() {
@@ -68,9 +72,10 @@ public class Message extends AbstractEntity {
         msgResp.setTypeValue(type);
         msgResp.setReceiveTypeValue(receiveType);
         msgResp.setTo(sendTo);
-        msgResp.setTitle(StringValue.of(title));
-        msgResp.setContent(StringValue.of(content));
-        msgResp.setFiles(StringValue.of(files));
+        if (title != null) msgResp.setTitle(title);
+        if (content != null) msgResp.setContent(content);
+        if (fileUrls != null) msgResp.setFileUrls(fileUrls);
+        if (imgUrls != null) msgResp.setImgUrls(imgUrls);
         msgResp.setCreatedAt(createdAt);
         msgResp.setUpdatedAt(updatedAt);
         msgResp.setStatusValue(status);

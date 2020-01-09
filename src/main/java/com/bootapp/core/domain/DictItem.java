@@ -43,6 +43,7 @@ public class DictItem extends AbstractEntity {
         if (proto.hasDescription()) description = proto.getDescription().getValue();
         if (proto.hasContent()) content = proto.getContent().getValue();
         if (proto.hasRemark()) remark = proto.getRemark().getValue();
+        if (proto.getStatus() != CoreCommon.EntityStatus.ENTITY_STATUS_NULL) status = proto.getStatusValue();
     }
     public CoreCommon.DictItem toProto() {
         return toProtoBuilder().build();
@@ -60,6 +61,7 @@ public class DictItem extends AbstractEntity {
         if (remark != null) builder.setRemark(remark);
         builder.setUpdatedAt(updatedAt);
         builder.setCreatedAt(createdAt);
+        builder.setStatusValue(status);
         return builder;
     }
 }

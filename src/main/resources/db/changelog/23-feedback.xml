@@ -6,33 +6,21 @@
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.6.xsd
                         http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
 
-    <changeSet id="messages-table-create" author="wangh09">
-        <createTable tableName="messages">
+    <changeSet id="feedback-table-create" author="wangh09">
+        <createTable tableName="feedback">
             <column name="id" type="bigint">
                 <constraints primaryKey="true" nullable="false"/>
-            </column>
-            <column name="type" type="integer">
-                <constraints nullable="true" />
-            </column>
-            <column name="receive_type" type="integer">
-                <constraints nullable="true" />
-            </column>
-            <column name="org_id" type="bigint">
-                <constraints nullable="true" />
             </column>
             <column name="user_id" type="bigint">
                 <constraints nullable="true" />
             </column>
-            <column name="send_to" type="bigint">
+            <column name="type_id" type="bigint">
                 <constraints nullable="true" />
             </column>
-            <column name="title" type="varchar(255)">
+            <column name="title" type="varchar(100)">
                 <constraints nullable="true" />
             </column>
             <column name="content" type="clob">
-                <constraints nullable="true" />
-            </column>
-            <column name="file_urls" type="varchar(255)">
                 <constraints nullable="true" />
             </column>
             <column name="img_urls" type="varchar(255)">
@@ -54,10 +42,5 @@
                 <constraints nullable="true" />
             </column>
         </createTable>
-        <createIndex indexName="idx_user"
-                     schemaName="core"
-                     tableName="messages">
-            <column name="user_id"/>
-        </createIndex>
     </changeSet>
 </databaseChangeLog>

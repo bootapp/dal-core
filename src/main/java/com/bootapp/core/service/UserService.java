@@ -32,16 +32,14 @@ public class UserService {
     private final MessageRepository messageRepository;
     private final RoleOrgRepository roleOrgRepository;
     private final RoleUserRepository roleUserRepository;
-    private final RelationVisitRepository relationVisitRepository;
-    private final RelationFollowRepository relationFollowRepository;
-    private final RelationBlacklistRepository relationBlacklistRepository;
     private final InboxRepository inboxRepository;
     private final DictItemRepository dictItemRepository;
     private final IDGenerator idGen;
+    private final FeedbackRepository feedbackRepository;
     private JPAQueryFactory queryFactory;
     private Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    public UserService(UserRepository userRepository, UserOrgsRepository userOrgsRepository, RelationsRepository relationsRepository, OrganizationRepository organizationRepository, DepartmentRepository departmentRepository, MessageRepository messageRepository, RoleOrgRepository roleOrgRepository, RoleUserRepository roleUserRepository, RelationVisitRepository relationVisitRepository, RelationFollowRepository relationFollowRepository, RelationBlacklistRepository blacklistRepository, InboxRepository inboxRepository, DictItemRepository dictItemRepository, IDGenerator idGen, EntityManager em) {
+    public UserService(UserRepository userRepository, UserOrgsRepository userOrgsRepository, RelationsRepository relationsRepository, OrganizationRepository organizationRepository, DepartmentRepository departmentRepository, MessageRepository messageRepository, RoleOrgRepository roleOrgRepository, RoleUserRepository roleUserRepository, InboxRepository inboxRepository, DictItemRepository dictItemRepository, IDGenerator idGen, FeedbackRepository feedbackRepository, EntityManager em) {
         this.userRepository = userRepository;
         this.userOrgsRepository = userOrgsRepository;
         this.relationsRepository = relationsRepository;
@@ -50,12 +48,10 @@ public class UserService {
         this.messageRepository = messageRepository;
         this.roleOrgRepository = roleOrgRepository;
         this.roleUserRepository = roleUserRepository;
-        this.relationVisitRepository = relationVisitRepository;
-        this.relationFollowRepository = relationFollowRepository;
-        this.relationBlacklistRepository = blacklistRepository;
         this.inboxRepository = inboxRepository;
         this.dictItemRepository = dictItemRepository;
         this.idGen = idGen;
+        this.feedbackRepository = feedbackRepository;
         queryFactory = new JPAQueryFactory(em);
     }
 
@@ -278,6 +274,18 @@ public class UserService {
                 throw GrpcStatusException.GrpcAlreadyExistsException("ALREADY_EXISTS:email");
         }
     }
+
+    public DalUser.IdsResp readUserIds(CoreCommon.AuthorizedPaginationReq request) {
+        DalUser.IdsResp.Builder resp = DalUser.IdsResp.newBuilder();
+        QUser qU = QUser.user;
+        long size = request.getPagination().getSize();
+        if (size <= 0) size = Constants.DEFAULT_PAGINATION_SIZE;
+        QueryResults<Long> ids = queryFactory.select(qU.id).from(qU)
+                .offset(request.getPagination().getIdx()).limit(size).fetchResults();
+        resp.addAllIds(resp.getIdsList());
+        resp.setPagination(CommonUtils.buildPagination(ids.getOffset(), ids.getLimit(), ids.getTotal()));
+        return resp.build();
+    }
     @Transactional
     public void updateOrgs(DalUser.OrgsReq request) {
         Map<Long, CoreCommon.OrganizationEdit> orgMap = new HashMap<>();
@@ -389,97 +397,110 @@ public class UserService {
         return resp;
     }
     @Transactional
-    public void updateMessages(DalUser.MessagesReq request) {
-        Map<Long, CoreCommon.Message> msgMap = new HashMap<>();
-        List<Message> messagesToSave = new ArrayList<>();
-        List<Inbox> inboxToSave = new ArrayList<>();
-        request.getDataList().forEach(x -> {
-            if (x.getTo() == 0L) return;
-            if (x.getId() == 0L) {
-                Message message = new Message();
-                message.setId(idGen.nextId());
-                message.fromProto(x);
-                if (message.getUserId() == 0L) message.setUserId(request.getUserId());
-                if (message.getOrgId() == 0L) message.setOrgId(request.getOrgId());
-                messagesToSave.add(message);
-                Inbox inbox = new Inbox();
-                inbox.setId(idGen.nextId());
-                inbox.setUserId(x.getTo());
-                inbox.setMsgId(message.getId());
-                inbox.setStatus(CoreCommon.EntityStatus.ENTITY_STATUS_INACTIVATED_VALUE);
-                inboxToSave.add(inbox);
+    public void updateMessage(DalUser.MessageReq request) {
+        Message msg;
+        if (request.getMsg().getId() == 0L) {
+            msg = new Message();
+            msg.setId(idGen.nextId());
+            msg.setStatus(CoreCommon.EntityStatus.ENTITY_STATUS_SUBMITTED_VALUE);
+        } else {
+            Optional<Message> msgOptional = messageRepository.findById(request.getMsg().getId());
+            if (msgOptional.isPresent()) {
+                msg = msgOptional.get();
             } else {
-                msgMap.put(x.getId(), x);
+                throw GrpcStatusException.GrpcNotFoundException();
             }
-        });
-        if (msgMap.size() > 0) {
-            List<Message> msgs = messageRepository.findAllById(msgMap.keySet());
-            msgs.forEach(x -> {
-                if (!msgMap.containsKey(x.getId())) return;
-                x.fromProto(msgMap.get(x.getId()));
-                messagesToSave.add(x);
-            });
         }
-        messageRepository.saveAll(messagesToSave);
-        inboxRepository.saveAll(inboxToSave);
+        msg.fromProto(request.getMsg());
+        messageRepository.save(msg);
     }
 
-    public CoreCommon.MessageResp.Builder readMessages(DalUser.ReadMessagesReq request) {
-        CoreCommon.MessageResp.Builder builder = CoreCommon.MessageResp.newBuilder();
+    public CoreCommon.MessageList readMessages(DalUser.ReadMessagesReq request) {
+        CoreCommon.MessageList.Builder builder = CoreCommon.MessageList.newBuilder();
         QMessage qMsg = QMessage.message;
-        QInbox qIn = QInbox.inbox;
         long size = request.getPagination().getSize();
         if (size <= 0) size = Constants.DEFAULT_PAGINATION_SIZE;
-        BooleanExpression qe;
+        BooleanExpression qe = null;
+
         // ===== msg type
-        if (request.getType() == CoreCommon.MessageType.MESSAGE_TYPE_NULL)
-            qe = qMsg.type.eq(CoreCommon.MessageType.MESSAGE_TYPE_USER_VALUE);
-        else
+        if (request.getType() != CoreCommon.MessageType.MESSAGE_TYPE_NULL)
             qe = qMsg.type.eq(request.getTypeValue());
+
         // ===== receive type
-        if (request.getReceiveType() == CoreCommon.ReceiveType.RECEIVE_TYPE_NULL)
-            qe = qMsg.receiveType.eq(CoreCommon.ReceiveType.RECEIVE_TYPE_SITE_VALUE).and(qe);
-        else
+        if (request.getReceiveType() != CoreCommon.ReceiveType.RECEIVE_TYPE_NULL)
             qe = qMsg.receiveType.eq(request.getReceiveTypeValue()).and(qe);
 
+        // ===== title
         if (!request.getTitle().equals(""))
             qe = qMsg.title.startsWith(request.getTitle()).and(qe);
+
+        // ===== content
         if (!request.getContent().equals(""))
             qe = qMsg.content.startsWith(request.getContent()).and(qe);
 
-        if (request.getUserId() == request.getToUserId()) {
-            qe = qIn.userId.eq(request.getToUserId()).and(qe);
-            if (request.getStatus() != CoreCommon.EntityStatus.ENTITY_STATUS_NULL)
-                qe = qIn.status.eq(request.getStatusValue()).and(qe);
-            QueryResults<Tuple> results = queryFactory.select(qIn, qMsg).from(qIn).leftJoin(qMsg).on(qMsg.id.eq(qIn.msgId))
-                    .where(qe).offset(request.getPagination().getIdx()).limit(size).fetchResults();
-            results.getResults().forEach(x -> {
-                Message msg = x.get(qMsg);
-                Inbox inbox = x.get(qIn);
-                if (msg == null || inbox == null) return;
-                CoreCommon.Message.Builder msgBuilder = msg.toProtoBuilder();
-                msgBuilder.setStatusValue(inbox.getStatus());
-                builder.addData(msgBuilder.build());
-            });
-            builder.setPagination(CommonUtils.buildPagination(results.getOffset(), results.getOffset(), results.getTotal()));
-        } else {
-            qe = qMsg.userId.eq(request.getFromUserId())
-                    .and(qMsg.status.eq(CoreCommon.EntityStatus.ENTITY_STATUS_NORMAL_VALUE)).and(qe);
-            if (request.getToUserId() != 0L) qe = qMsg.sendTo.eq(request.getToUserId()).and(qe);
-            QueryResults<Message> results = queryFactory.selectFrom(qMsg)
-                    .where(qe).offset(request.getPagination().getIdx()).limit(size).fetchResults();
-            builder.addAllData(results.getResults().stream().map(Message::toProto).collect(Collectors.toList()));
-            builder.setPagination(CommonUtils.buildPagination(results.getOffset(), results.getOffset(), results.getTotal()));
+        if (request.getFromUserId() != 0L)
+            qe = qMsg.userId.eq(request.getFromUserId()).and(qe);
+
+        if (request.getStatus() != CoreCommon.EntityStatus.ENTITY_STATUS_NULL)
+            qe = qMsg.status.eq(request.getStatusValue()).and(qe);
+
+        if (request.getPagination().getIdx() != 0L) {
+            qe = qMsg.id.lt(request.getPagination().getIdx());
         }
-        return builder;
+
+        List<Message> msgs = queryFactory.selectFrom(qMsg).where(qe).orderBy(qMsg.id.desc()).limit(size).fetch();
+        builder.addAllData(msgs.stream().map(Message::toProto).collect(Collectors.toList()));
+        return builder.build();
     }
 
     @Transactional
-    public void updateInbox(DalUser.UpdateInboxReq request) {
-        List<Inbox> items = inboxRepository.findAllById(request.getIdsList());
-        items.forEach(x -> x.setStatus(request.getStatusValue()));
-        inboxRepository.saveAll(items);
+    public void createInbox(DalUser.CreateInboxReq request) {
+        List<Inbox> inboxToSave = new ArrayList<>();
+        request.getToUserIdsList().forEach(x -> {
+            Inbox inbox = new Inbox();
+            inbox.setId(idGen.nextId());
+            inbox.setUserId(x);
+            inbox.setMsgId(request.getMsgId());
+            inboxToSave.add(inbox);
+        });
+        inboxRepository.saveAll(inboxToSave);
     }
+
+    public void updateInbox(DalUser.UpdateInboxReq request) {
+        List<Inbox> inboxes = inboxRepository.findAllById(request.getIdsList());
+        inboxes.forEach(x -> {
+            if (x.getUserId() != request.getUserId())
+                throw GrpcStatusException.GrpcUnauthorizedException();
+            x.setStatus(request.getStatusValue());
+        });
+        inboxRepository.saveAll(inboxes);
+    }
+    public CoreCommon.MessageList readInbox(DalUser.ReadInboxReq request) {
+        CoreCommon.MessageList.Builder resp = CoreCommon.MessageList.newBuilder();
+        QInbox qI = QInbox.inbox;
+        QMessage qMsg = QMessage.message;
+        long size = request.getPagination().getSize();
+        if (size <= 0) size = Constants.DEFAULT_PAGINATION_SIZE;
+        BooleanExpression expr = qI.userId.eq(request.getQueryUserId());
+        if (request.getPagination().getIdx() != 0)
+            expr = qI.id.lt(request.getPagination().getIdx()).and(expr);
+
+        List<Tuple> msgs = queryFactory.select(qMsg, qI).from(qI).leftJoin(qMsg).on(qMsg.id.eq(qI.msgId))
+                .where(expr).orderBy(qI.id.desc()).limit(size).fetch();
+        List<CoreCommon.Message> msgRes = new ArrayList<>();
+        msgs.forEach(x -> {
+            Message msg = x.get(qMsg);
+            Inbox inbox = x.get(qI);
+            if (msg != null && inbox != null) {
+                CoreCommon.Message.Builder builder = msg.toProtoBuilder();
+                builder.setStatusValue(inbox.getStatus());
+                msgRes.add(builder.build());
+            }
+        });
+        resp.addAllData(msgRes);
+        return resp.build();
+    }
+
     @Transactional
     public void deleteInbox(DalUser.UpdateInboxReq request) {
         inboxRepository.deleteByIdIn(request.getIdsList());
@@ -648,99 +669,6 @@ public class UserService {
     }
 
     @Transactional
-    public void createSimpleRelation(DalUser.SimpleRelationReq request) {
-        switch (request.getType()) {
-            case RELATION_SIMPLE_USER_VISIT: {
-                RelationVisit item = new RelationVisit();
-                item.setId(idGen.nextId());
-                item.setUserId(request.getQueryUserId());
-                item.setToUserId(request.getToId());
-                relationVisitRepository.save(item);
-            }
-            break;
-            case RELATION_SIMPLE_USER_FOLLOW: {
-                RelationFollow item = new RelationFollow();
-                item.setId(idGen.nextId());
-                item.setUserId(request.getQueryUserId());
-                item.setToUserId(request.getToId());
-                relationFollowRepository.save(item);
-            }
-            break;
-            case RELATION_SIMPLE_USER_BLACKLIST: {
-                RelationBlacklist item = new RelationBlacklist();
-                item.setId(idGen.nextId());
-                item.setUserId(request.getQueryUserId());
-                item.setBlockedUserId(request.getToId());
-                relationBlacklistRepository.save(item);
-            }
-            break;
-        }
-    }
-
-    @Transactional
-    public void deleteSimpleRelation(DalUser.SimpleRelationReq request) {
-        switch (request.getType()) {
-            case RELATION_SIMPLE_USER_VISIT: {
-                relationVisitRepository.deleteByUserIdAndToUserId(request.getQueryUserId(), request.getToId());
-            }
-            break;
-            case RELATION_SIMPLE_USER_FOLLOW: {
-                relationFollowRepository.deleteByUserIdAndToUserId(request.getQueryUserId(), request.getToId());
-            }
-            break;
-            case RELATION_SIMPLE_USER_BLACKLIST: {
-                relationBlacklistRepository.deleteByUserIdAndBlockedUserId(request.getQueryUserId(), request.getToId());
-            }
-            break;
-        }
-    }
-
-    public CoreCommon.SimpleRelationList readSimpleRelations(DalUser.SimpleRelationReq request) {
-        CoreCommon.SimpleRelationList.Builder builder = CoreCommon.SimpleRelationList.newBuilder();
-        long size = request.getPagination().getSize();
-        if (size <= 0) size = Constants.DEFAULT_PAGINATION_SIZE;
-        switch (request.getType()) {
-            case RELATION_SIMPLE_USER_VISIT: {
-                QRelationVisit qRe = QRelationVisit.relationVisit;
-                BooleanExpression be = null;
-                if (request.getUserId() != 0L) be = qRe.userId.eq(request.getUserId());
-                if (request.getToId() != 0L) be = qRe.toUserId.eq(request.getToId()).and(be);
-                QueryResults<RelationVisit> qRes = queryFactory.selectFrom(qRe).where(be)
-                        .offset(request.getPagination().getIdx()).limit(size)
-                        .orderBy(qRe.updatedAt.desc()).fetchResults();
-                builder.addAllData(qRes.getResults().stream().map(RelationVisit::toProto).collect(Collectors.toList()));
-                builder.setPagination(CommonUtils.buildPagination(qRes.getOffset(), qRes.getLimit(), qRes.getTotal()));
-            }
-            break;
-            case RELATION_SIMPLE_USER_FOLLOW: {
-                QRelationFollow qRe = QRelationFollow.relationFollow;
-                BooleanExpression be = null;
-                if (request.getUserId() != 0L) be = qRe.userId.eq(request.getUserId());
-                if (request.getToId() != 0L) be = qRe.toUserId.eq(request.getToId()).and(be);
-                QueryResults<RelationFollow> qRes = queryFactory.selectFrom(qRe).where(be)
-                        .offset(request.getPagination().getIdx()).limit(size)
-                        .orderBy(qRe.updatedAt.desc()).fetchResults();
-                builder.addAllData(qRes.getResults().stream().map(RelationFollow::toProto).collect(Collectors.toList()));
-                builder.setPagination(CommonUtils.buildPagination(qRes.getOffset(), qRes.getLimit(), qRes.getTotal()));
-            }
-            break;
-            case RELATION_SIMPLE_USER_BLACKLIST: {
-                QRelationBlacklist qRe = QRelationBlacklist.relationBlacklist;
-                BooleanExpression be = null;
-                if (request.getUserId() != 0L) be = qRe.userId.eq(request.getUserId());
-                if (request.getToId() != 0L) be = qRe.blockedUserId.eq(request.getToId()).and(be);
-                QueryResults<RelationBlacklist> qRes = queryFactory.selectFrom(qRe).where(be)
-                        .offset(request.getPagination().getIdx()).limit(size)
-                        .orderBy(qRe.updatedAt.desc()).fetchResults();
-                builder.addAllData(qRes.getResults().stream().map(RelationBlacklist::toProto).collect(Collectors.toList()));
-                builder.setPagination(CommonUtils.buildPagination(qRes.getOffset(), qRes.getLimit(), qRes.getTotal()));
-            }
-            break;
-        }
-        return builder.build();
-    }
-
-    @Transactional
     public void updateDictItems(DalUser.DictItemsReq request) {
         if (request.getDataCount() > 0) {
             List<DictItem> itemsToSave = new ArrayList<>();
@@ -775,15 +703,13 @@ public class UserService {
 
         if (request.getIdsCount() > 0) {
             dictItems = queryFactory.selectFrom(qDict).where(qDict.id.in(request.getIdsList())).fetch();
-        } else if (request.getPid() != 0) {
-            QueryResults<DictItem> qR = queryFactory.selectFrom(qDict)
-                    .where(qDict.pid.eq(request.getPid()))
-                    .offset(request.getPagination().getIdx()).limit(size).fetchResults();
-            dictItems = qR.getResults();
-            builder.setPagination(CommonUtils.buildPagination(qR.getOffset(), qR.getLimit(), qR.getTotal()));
         } else {
-            QueryResults<DictItem> qR = queryFactory.selectFrom(qDict)
-                    .where(qDict.pid.eq(request.getPid()))
+            BooleanExpression expr = null;
+            if (request.getStatus() != CoreCommon.EntityStatus.ENTITY_STATUS_NULL)
+                expr = qDict.status.eq(request.getStatusValue());
+            if (request.getPid() != 0) expr = qDict.pid.eq(request.getPid()).and(expr);
+
+            QueryResults<DictItem> qR = queryFactory.selectFrom(qDict).where(expr)
                     .offset(request.getPagination().getIdx()).limit(size).fetchResults();
             dictItems = qR.getResults();
             builder.setPagination(CommonUtils.buildPagination(qR.getOffset(), qR.getLimit(), qR.getTotal()));
@@ -795,5 +721,39 @@ public class UserService {
     @Transactional
     public void deleteDictItems(CoreCommon.AuthorizedIdsReq request) {
         dictItemRepository.deleteByIdIn(request.getIdsList());
+    }
+
+    @Transactional
+    public void updateFeedback(DalUser.FeedbackReq request) {
+        Feedback item;
+        if (request.getItem().getId() == 0) {
+            item = new Feedback();
+            item.setId(idGen.nextId());
+        } else {
+            Optional<Feedback> feedbackOptional = feedbackRepository.findById(request.getItem().getId());
+            if (feedbackOptional.isPresent()) {
+                item = feedbackOptional.get();
+            } else {
+                throw GrpcStatusException.GrpcNotFoundException();
+            }
+        }
+        item.fromProto(request.getItem());
+        feedbackRepository.save(item);
+    }
+
+    public CoreCommon.FeedbackList readFeedback(DalUser.ReadFeedbackReq request) {
+        CoreCommon.FeedbackList.Builder resp = CoreCommon.FeedbackList.newBuilder();
+        QFeedback qF = QFeedback.feedback;
+        long size = request.getPagination().getSize();
+        if (size <= 0) size = Constants.DEFAULT_PAGINATION_SIZE;
+        BooleanExpression expr = null;
+        if (request.getStatus() != CoreCommon.EntityStatus.ENTITY_STATUS_NULL)
+            expr = qF.status.eq(request.getStatusValue());
+        QueryResults<Feedback> data = queryFactory.selectFrom(qF).where(expr)
+                .offset(request.getPagination().getIdx()).limit(size).fetchResults();
+
+        resp.addAllData(data.getResults().stream().map(Feedback::toProto).collect(Collectors.toList()));
+        resp.setPagination(CommonUtils.buildPagination(data.getOffset(), data.getLimit(), data.getTotal()));
+        return resp.build();
     }
 }
