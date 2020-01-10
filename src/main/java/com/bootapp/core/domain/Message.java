@@ -44,13 +44,8 @@ public class Message extends AbstractEntity {
     private String imgUrls;
 
     public void fromProto(CoreCommon.MessageEdit proto) {
-        if (proto.getType() != CoreCommon.MessageType.MESSAGE_TYPE_NULL)
-            type = proto.getTypeValue();
-        else type = CoreCommon.MessageType.MESSAGE_TYPE_USER_VALUE;
-
-        if (proto.getReceiveType() != CoreCommon.ReceiveType.RECEIVE_TYPE_NULL)
-            receiveType = proto.getReceiveTypeValue();
-        else receiveType = CoreCommon.ReceiveType.RECEIVE_TYPE_SITE_VALUE;
+        if (proto.getType() != CoreCommon.MessageType.MESSAGE_TYPE_NULL) type = proto.getTypeValue();
+        if (proto.getReceiveType() != CoreCommon.ReceiveType.RECEIVE_TYPE_NULL) receiveType = proto.getReceiveTypeValue();
 
         if (proto.getUserId() != 0L) userId = proto.getUserId();
         if (proto.getOrgId() != 0L) orgId = proto.getOrgId();
@@ -59,6 +54,7 @@ public class Message extends AbstractEntity {
         if (proto.hasContent()) content = proto.getContent().getValue();
         if (proto.hasFileUrls()) fileUrls = proto.getFileUrls().getValue();
         if (proto.hasImgUrls()) imgUrls = proto.getImgUrls().getValue();
+        if (proto.getStatus() != CoreCommon.EntityStatus.ENTITY_STATUS_NULL) status = proto.getStatusValue();
     }
 
     public CoreCommon.Message toProto() {

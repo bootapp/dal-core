@@ -282,7 +282,7 @@ public class UserService {
         if (size <= 0) size = Constants.DEFAULT_PAGINATION_SIZE;
         QueryResults<Long> ids = queryFactory.select(qU.id).from(qU)
                 .offset(request.getPagination().getIdx()).limit(size).fetchResults();
-        resp.addAllIds(resp.getIdsList());
+        resp.addAllIds(ids.getResults());
         resp.setPagination(CommonUtils.buildPagination(ids.getOffset(), ids.getLimit(), ids.getTotal()));
         return resp.build();
     }
