@@ -1,3 +1,5 @@
 key@group_id@value@name
 P_NULL@500@0@无
 P_SUPER_ADMIN@550@1@无
+P_SYS_USER_R@550@2@无
+P_SYS_USER_W@550@4@无

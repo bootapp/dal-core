@@ -26,6 +26,9 @@
             <column name="img_urls" type="varchar(255)">
                 <constraints nullable="true" />
             </column>
+            <column name="reply" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
             <column name="status" type="integer">
                 <constraints nullable="true" />
             </column>

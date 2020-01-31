@@ -32,9 +32,6 @@ databaseChangeLog:
                   name: password_hash
                   type: VARCHAR(60)
               - column:
-                  name: name
-                  type: VARCHAR(32)
-              - column:
                   name: status
                   type: Int
               - column:
@@ -49,6 +46,15 @@ databaseChangeLog:
               - column:
                   name: last_updated_by
                   type: BigInt
+              - column:
+                  name: reg_ip
+                  type: Int
+              - column:
+                  name: last_login_time
+                  type: BigInt
+              - column:
+                  name: last_login_ip
+                  type: Int
         - loadData:
             file: "db/data/users.csv"
             separator: '#'
@@ -70,9 +76,6 @@ databaseChangeLog:
                   name: password_hash
                   type: string
               - column:
-                  name: name
-                  type: string
-              - column:
                   name: status
                   type: numeric
               - column:
@@ -86,4 +89,13 @@ databaseChangeLog:
                   type: numeric
               - column:
                   name: last_updated_by
+                  type: numeric
+              - column:
+                  name: reg_ip
+                  type: numeric
+              - column:
+                  name: last_login_time
+                  type: numeric
+              - column:
+                  name: last_login_ip
                   type: numeric

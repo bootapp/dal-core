@@ -56,13 +56,12 @@ public class UserService {
     }
 
     @Transactional
-    public CoreCommon.UserWithOrgAuth.Builder saveUser(DalUser.CreateUserReq request) {
-        CoreCommon.User req = request.getUser();
+    public CoreCommon.UserWithOrgAuth.Builder saveUser(DalUser.CreateUserReq req) {
         User user = new User();
-        user.fromProto(req);
+        user.fromProto(req.getUser());
         //------------ set password
-        if (req.hasPassword())
-            user.setPasswordHash(BCrypt.hashpw(req.getPassword().getValue(), BCrypt.gensalt()));
+        if (req.getUser().hasPassword())
+            user.setPasswordHash(BCrypt.hashpw(req.getUser().getPassword().getValue(), BCrypt.gensalt()));
         user.setId(idGen.nextId());
         logger.info("new user saving to db with id: {}", user.getId());
         UserOrgs userOrgs = new UserOrgs(idGen.nextId(), user.getId(), 1, 1);
@@ -89,51 +88,20 @@ public class UserService {
         );
     }
 
-    @Transactional
-    public CoreCommon.UsersResp.Builder createUsersWithOrg(DalUser.CreateUsersWithOrgReq request) {
-        List<Organization> orgs = new ArrayList<>();
-        List<UserOrgs> userOrgs = new ArrayList<>();
-        List<User> users = request.getDataList().stream().map(x -> {
-            User newUser = new User();
-            newUser.fromProto(x.getUser());
-            newUser.setId(idGen.nextId());
-            Organization org = new Organization();
-            org.fromProto(x.getOrg());
-            org.setId(idGen.nextId());
-            org.setOrgRoleId(1L);
-            if (org.getStatus() == CoreCommon.EntityStatus.ENTITY_STATUS_NULL_VALUE)
-                org.setStatus(CoreCommon.EntityStatus.ENTITY_STATUS_INACTIVATED_VALUE);
-            orgs.add(org);
-            UserOrgs userOrg = new UserOrgs(idGen.nextId(), newUser.getId(),
-                    org.getId(), request.getRoleId());
-            userOrgs.add(userOrg);
-            return newUser;
-        }).collect(Collectors.toList());
-        userRepository.saveAll(users);
-        organizationRepository.saveAll(orgs);
-        userOrgsRepository.saveAll(userOrgs);
-        return CoreCommon.UsersResp.newBuilder().addAllData(
-                users.stream().map(User::toProto).collect(Collectors.toList())
-        );
-    }
-
-    public CoreCommon.UserWithOrgAuth.Builder readUserAuth(DalUser.ReadUserReq request) {
+    public CoreCommon.UserWithOrgAuth.Builder readUserAuth(DalUser.ReadUserReq req) {
         CoreCommon.UserWithOrgAuth.Builder resp = CoreCommon.UserWithOrgAuth.newBuilder();
-        com.bootapp.core.domain.User user = new com.bootapp.core.domain.User();
-        CoreCommon.User req = request.getUser();
         QUser qUser = QUser.user;
 
         BooleanExpression queryExpressions = null;
-        user.fromProto(req);
-        if (user.getId() != 0L)
-            queryExpressions = qUser.id.eq(user.getId());
+        if (req.getId() != 0L)
+            queryExpressions = qUser.id.eq(req.getId());
         else {
-            if (user.getUsername() != null && !user.getUsername().equals(""))
-                queryExpressions = qUser.username.eq(user.getUsername()).or(queryExpressions);
-            if (user.getEmail() != null && !user.getEmail().equals(""))
-                queryExpressions = qUser.email.eq(user.getEmail()).or(queryExpressions);
-            if (user.getPhone() != null && !user.getPhone().equals(""))
-                queryExpressions = qUser.phone.eq(user.getPhone()).or(queryExpressions);
+            if (req.getUsername() != null && !req.getUsername().equals(""))
+                queryExpressions = qUser.username.eq(req.getUsername());
+            if (req.getEmail() != null && !req.getEmail().equals(""))
+                queryExpressions = qUser.email.eq(req.getEmail()).or(queryExpressions);
+            if (req.getPhone() != null && !req.getPhone().equals(""))
+                queryExpressions = qUser.phone.eq(req.getPhone()).or(queryExpressions);
         }
         if (queryExpressions == null) throw GrpcStatusException.GrpcNotFoundException();
         User dbUser = queryFactory.selectFrom(qUser).where(queryExpressions).fetchOne();
@@ -141,12 +109,12 @@ public class UserService {
 
         if (dbUser.getStatus() != CoreCommon.EntityStatus.ENTITY_STATUS_NORMAL_VALUE)
             throw GrpcStatusException.GrpcInvalidArgException("INVALID_ARG:inactivated");
-        if (req.getId() == 0 && req.hasPassword() && !BCrypt.checkpw(req.getPassword().getValue(), dbUser.getPasswordHash()))
+        if (req.getId() == 0 && !req.getPassword().equals("") && !BCrypt.checkpw(req.getPassword(), dbUser.getPasswordHash()))
             throw GrpcStatusException.GrpcInvalidArgException("INVALID_PASSWORD");
         resp.setUser(dbUser.toProto());
         List<UserOrgs> userOrgsList;
-        if (request.getOrgId() != 0) {
-            Optional<UserOrgs> userOrgs = userOrgsRepository.findOneByUserIdAndOrgId(dbUser.getId(), request.getOrgId());
+        if (req.getOrgId() != 0) {
+            Optional<UserOrgs> userOrgs = userOrgsRepository.findOneByUserIdAndOrgId(dbUser.getId(), req.getOrgId());
             if (!userOrgs.isPresent())
                 throw GrpcStatusException.GrpcInternalException("NON_EXISTS");
             userOrgsList = Collections.singletonList(userOrgs.get());
@@ -180,34 +148,28 @@ public class UserService {
         return resp;
     }
 
-    public CoreCommon.UsersResp.Builder readUsers(DalUser.ReadUsersReq request) {
+    public CoreCommon.UsersResp.Builder readUsers(DalUser.ReadUsersReq req) {
         CoreCommon.UsersResp.Builder resp = CoreCommon.UsersResp.newBuilder();
-        CoreCommon.User req = request.getUser();
         QUser qUser = QUser.user;
-        QUserOrgs qUserOrgs = QUserOrgs.userOrgs;
-
         BooleanExpression expr = null;
-
-        if (req.hasUsername()) expr = qUser.username.like(req.getUsername().getValue() + "%");
-        if (req.hasEmail()) expr = qUser.email.like(req.getEmail().getValue() + "%").or(expr);
-        if (req.hasPhone()) expr = qUser.phone.like(req.getPhone().getValue() + "%").or(expr);
-        if (req.getOrgId() != 0L) expr =  qUserOrgs.orgId.eq(req.getOrgId()).and(expr);
-
-        long size = request.getPagination().getSize();
-        if (size <= 0) size = Constants.DEFAULT_PAGINATION_SIZE;
-
         QueryResults<User> qRes;
-        if (expr != null) {
-            qRes = queryFactory.select(qUser).from(qUser)
-                    .innerJoin(qUserOrgs).on(qUserOrgs.userId.eq(qUser.id))
-                    .where(expr).offset(request.getPagination().getIdx()).limit(size).fetchResults();
-        } else
-            qRes = queryFactory.select(qUser).from(qUser)
-                    .offset(request.getPagination().getIdx()).limit(size).fetchResults();
 
+        if (req.getIdsCount() > 0) {
+            expr = qUser.id.in(req.getIdsList());
+            qRes = queryFactory.selectFrom(qUser).where(expr).fetchResults();
+        } else {
+            long size = req.getPagination().getSize();
+            if (size <= 0) size = Constants.DEFAULT_PAGINATION_SIZE;
+            if (!req.getUsername().equals("")) expr = qUser.username.like(req.getUsername() + "%");
+            if (!req.getEmail().equals("")) expr = qUser.email.like(req.getEmail() + "%").or(expr);
+            if (!req.getPhone().equals("")) expr = qUser.phone.like(req.getPhone() + "%").or(expr);
+            if (req.getStatus() != CoreCommon.EntityStatus.ENTITY_STATUS_NULL) expr = qUser.status.eq(req.getStatusValue()).and(expr);
+            qRes = queryFactory.selectFrom(qUser)
+                    .where(expr).offset(req.getPagination().getIdx()).limit(size).fetchResults();
+            resp.setPagination(CoreCommon.Pagination.newBuilder()
+                    .setTotal(qRes.getTotal()).setIdx(qRes.getOffset()).setSize(size));
+        }
         qRes.getResults().forEach(it -> resp.addData(it.toProto()));
-        resp.setPagination(CoreCommon.Pagination.newBuilder()
-                .setTotal(qRes.getTotal()).setIdx(qRes.getOffset()).setSize(size));
         return resp;
     }
     @Transactional
@@ -239,38 +201,17 @@ public class UserService {
         userRepository.save(dbUser);
     }
 
-    public CoreCommon.UsersResp.Builder readUsersIn(DalUser.ReadUsersInReq request) {
-        QUser qUser = QUser.user;
-
-        BooleanExpression exp = null;
-        if (request.getUserIdsCount() > 0) exp = qUser.id.in(request.getUserIdsList()).and(exp);
-        if (request.getPhonesCount() > 0) exp = qUser.phone.in(request.getPhonesList()).and(exp);
-        if (request.getEmailsCount() > 0) exp = qUser.email.in(request.getEmailsList()).and(exp);
-        if (request.getUsernamesCount() > 0) exp = qUser.username.in(request.getUsernamesList()).and(exp);
-        if (request.getNamesCount() > 0) exp = qUser.name.in(request.getNamesList()).and(exp);
-
-        long size = request.getPagination().getSize();
-        if (size <= 0) size = Constants.DEFAULT_PAGINATION_SIZE;
-        QueryResults<User> res =queryFactory.selectFrom(qUser)
-                .where(exp).offset(request.getPagination().getIdx()).limit(size).fetchResults();
-
-        CoreCommon.UsersResp.Builder resp = CoreCommon.UsersResp.newBuilder();
-        resp.addAllData(res.getResults().stream().map(User::toProto).collect(Collectors.toList()));
-
-        resp.setPagination(CommonUtils.buildPagination(res.getOffset(), res.getLimit(), res.getTotal()));
-        return resp;
-    }
     public void verifyUniqueUser(CoreCommon.User request) {
-        if (request.hasUsername()) {
-            if (userRepository.findOneByUsername(request.getUsername().getValue()).isPresent())
+        if (!request.getUsername().equals("")) {
+            if (userRepository.findOneByUsername(request.getUsername()).isPresent())
                 throw GrpcStatusException.GrpcAlreadyExistsException("ALREADY_EXISTS:username");
         }
-        if (request.hasPhone()) {
-            if (userRepository.findOneByPhone(request.getPhone().getValue()).isPresent())
+        if (!request.getPhone().equals("")) {
+            if (userRepository.findOneByPhone(request.getPhone()).isPresent())
                 throw GrpcStatusException.GrpcAlreadyExistsException("ALREADY_EXISTS:phone");
         }
-        if (request.hasEmail()) {
-            if (userRepository.findOneByEmail(request.getEmail().getValue()).isPresent())
+        if (!request.getEmail().equals("")) {
+            if (userRepository.findOneByEmail(request.getEmail()).isPresent())
                 throw GrpcStatusException.GrpcAlreadyExistsException("ALREADY_EXISTS:email");
         }
     }
@@ -563,7 +504,6 @@ public class UserService {
         BooleanExpression query = qRelation.sourceId.eq(request.getOrgId());
         if (!request.getOrgSerialNumber().equals("")) query = qOrganization.code.like(request.getOrgSerialNumber() + "%");
         if (!request.getOrgName().equals("")) query = qOrganization.name.like(request.getOrgName() + "%").or(query);
-        if (!request.getContactName().equals("")) query = qUser.name.like(request.getContactName() + "%").or(query);
         if (!request.getContactPhone().equals("")) query = qUser.phone.like(request.getContactPhone() + "%").or(query);
         if (!request.getContactEmail().equals("")) query = qUser.email.like(request.getContactEmail() + "%").or(query);
         QueryResults<Relation> relations = queryFactory.selectFrom(qRelation)
@@ -709,7 +649,7 @@ public class UserService {
                 expr = qDict.status.eq(request.getStatusValue());
             if (request.getPid() != 0) expr = qDict.pid.eq(request.getPid()).and(expr);
 
-            QueryResults<DictItem> qR = queryFactory.selectFrom(qDict).where(expr)
+            QueryResults<DictItem> qR = queryFactory.selectFrom(qDict).where(expr).orderBy(qDict.seq.asc())
                     .offset(request.getPagination().getIdx()).limit(size).fetchResults();
             dictItems = qR.getResults();
             builder.setPagination(CommonUtils.buildPagination(qR.getOffset(), qR.getLimit(), qR.getTotal()));
@@ -746,11 +686,18 @@ public class UserService {
         QFeedback qF = QFeedback.feedback;
         long size = request.getPagination().getSize();
         if (size <= 0) size = Constants.DEFAULT_PAGINATION_SIZE;
+
         BooleanExpression expr = null;
-        if (request.getStatus() != CoreCommon.EntityStatus.ENTITY_STATUS_NULL)
-            expr = qF.status.eq(request.getStatusValue());
-        QueryResults<Feedback> data = queryFactory.selectFrom(qF).where(expr)
-                .offset(request.getPagination().getIdx()).limit(size).fetchResults();
+        QueryResults<Feedback> data;
+        if (request.getId() != 0L) {
+            expr = qF.id.eq(request.getId());
+            data = queryFactory.selectFrom(qF).where(expr).fetchResults();
+        } else {
+            if (request.getStatus() != CoreCommon.EntityStatus.ENTITY_STATUS_NULL)
+                expr = qF.status.eq(request.getStatusValue());
+            data = queryFactory.selectFrom(qF).where(expr)
+                    .offset(request.getPagination().getIdx()).limit(size).fetchResults();
+        }
 
         resp.addAllData(data.getResults().stream().map(Feedback::toProto).collect(Collectors.toList()));
         resp.setPagination(CommonUtils.buildPagination(data.getOffset(), data.getLimit(), data.getTotal()));

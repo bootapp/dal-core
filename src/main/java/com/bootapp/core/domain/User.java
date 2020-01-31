@@ -27,27 +27,35 @@ public class User extends AbstractEntity {
     @Column(name = "password_hash", length = 60)
     String passwordHash;
 
-    @Column(name = "name", length = 32)
-    String name;
+    @Column(name = "reg_ip")
+    int regIp;
+    @Column(name = "last_login_time")
+    long lastLoginTime;
+    @Column(name = "last_login_ip")
+    int lastLoginIp;
 
-    public void fromProto(CoreCommon.User item) {
+    public void fromProto(CoreCommon.UserEdit item) {
         if (item.getId() != 0L) id = item.getId();
         if (item.getStatusValue() != 0) status = item.getStatusValue();
         if (item.hasPhone()) phone = item.getPhone().getValue();
         if (item.hasEmail()) email = item.getEmail().getValue();
         if (item.hasUsername()) username = item.getUsername().getValue();
-        if (item.hasName()) name = item.getName().getValue();
+        if (item.hasRegIp()) regIp = item.getRegIp().getValue();
+        if (item.hasLastLoginTime()) lastLoginTime = item.getLastLoginTime().getValue();
+        if (item.hasLastLoginIp()) lastLoginIp = item.getLastLoginIp().getValue();
     }
     public CoreCommon.User toProto() {
         CoreCommon.User.Builder builder = CoreCommon.User.newBuilder();
         if (this.getId() != 0L) builder.setId(this.getId());
         if (this.status != 0) builder.setStatusValue(this.status);
-        if (this.phone != null && !this.phone.equals("")) builder.setPhone(StringValue.of(this.phone));
-        if (this.email != null && !this.email.equals("")) builder.setEmail(StringValue.of(this.email));
-        if (this.username != null && !this.username.equals("")) builder.setUsername(StringValue.of(this.username));
-        if (this.name != null && !this.name.equals("")) builder.setName(StringValue.of(this.name));
+        if (this.phone != null) builder.setPhone(this.phone);
+        if (this.email != null) builder.setEmail(this.email);
+        if (this.username != null) builder.setUsername(this.username);
         builder.setCreatedAt(this.createdAt);
         builder.setUpdatedAt(this.updatedAt);
+        builder.setRegIp(regIp);
+        builder.setLastLoginIp(lastLoginIp);
+        builder.setLastLoginTime(lastLoginTime);
         return builder.buildPartial();
     }
     public long getId() {
@@ -88,13 +96,5 @@ public class User extends AbstractEntity {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
     }
 }

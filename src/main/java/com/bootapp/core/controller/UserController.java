@@ -66,21 +66,6 @@ public class UserController extends DalUserServiceGrpc.DalUserServiceImplBase {
         }
     }
     @Override
-    public void createUsersWithNewOrg(DalUser.CreateUsersWithOrgReq request, StreamObserver<CoreCommon.UsersResp> responseObserver) {
-        try {
-            responseObserver.onNext(userService.createUsersWithOrg(request).build());
-            responseObserver.onCompleted();
-        }catch (DataIntegrityViolationException e) {
-            responseObserver.onError(GrpcStatusException.GrpcAlreadyExistsException(new RuntimeException("ALREADY_EXISTS:"+e.getMostSpecificCause().getMessage())));
-        } catch (ConstraintViolationException e) {
-            responseObserver.onError(GrpcStatusException.GrpcInvalidArgException(new RuntimeException("INVALID_ARGS:"+e.getConstraintName())));
-        } catch (RuntimeException e) {
-            e.printStackTrace();
-            logger.error(e.getMessage());
-            responseObserver.onError(e);
-        }
-    }
-    @Override
     public void readUserAuth(DalUser.ReadUserReq request, StreamObserver<CoreCommon.UserWithOrgAuth> responseObserver) {
         try {
             responseObserver.onNext(userService.readUserAuth(request).build());
@@ -141,18 +126,6 @@ public class UserController extends DalUserServiceGrpc.DalUserServiceImplBase {
         try {
 
             responseObserver.onNext(userService.readUsers(request).build());
-            responseObserver.onCompleted();
-        } catch (Exception e) {
-            logger.error(e.toString());
-            responseObserver.onError(e);
-        }
-    }
-
-    @Override
-    public void readUsersIn(DalUser.ReadUsersInReq request, StreamObserver<CoreCommon.UsersResp> responseObserver) {
-        try {
-
-            responseObserver.onNext(userService.readUsersIn(request).build());
             responseObserver.onCompleted();
         } catch (Exception e) {
             logger.error(e.toString());
