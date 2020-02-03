@@ -162,7 +162,13 @@ public class UserService {
             if (size <= 0) size = Constants.DEFAULT_PAGINATION_SIZE;
             if (!req.getUsername().equals("")) expr = qUser.username.startsWith(req.getUsername());
             if (!req.getEmail().equals("")) expr = qUser.email.startsWith(req.getEmail()).or(expr);
-            if (!req.getPhone().equals("")) expr = qUser.phone.startsWith("'" + req.getPhone() + "'").or(expr);
+            if (!req.getPhone().equals("")) {
+                String qStr;
+                if (!req.getPhone().startsWith("+")) qStr = "+" + req.getPhone();
+                else qStr = req.getPhone();
+                qStr = qStr.replace(" ", "").replace("+", "/+").replace("-", "/-") + "%";
+                expr = qUser.phone.like(qStr, '/').or(expr);
+            }
             if (req.getStatus() != CoreCommon.EntityStatus.ENTITY_STATUS_NULL) expr = qUser.status.eq(req.getStatusValue()).and(expr);
             qRes = queryFactory.selectFrom(qUser)
                     .where(expr).offset(req.getPagination().getIdx()).limit(size).fetchResults();
